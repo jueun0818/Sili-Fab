@@ -1,0 +1,2290 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>실리 팹 : 반도체 8대 공정 챌린지</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><rect width=%2216%22 height=%2216%22 fill=%22%2300e5ff%22/><rect x=%224%22 y=%224%22 width=%228%22 height=%228%22 fill=%22%230b1220%22/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ffeef6;
+  --bg2:#ffe1ee;
+  --panel:#ffffff;
+  --panel2:#fff3f8;
+  --line:#ffc9dd;
+  --accent:#2f6fed;
+  --accent2:#0ea5e9;
+  --gold:#0284c7;
+  --good:#16a34a;
+  --bad:#e11d48;
+  --warn:#3b82f6;
+  --text:#341530;
+  --text-dim:#9c7089;
+  --ink:#0a1120;
+  --pink:#ff8fc0;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  margin:0;
+  background:
+    radial-gradient(circle at 20% 0%, #ffd3e8 0%, transparent 45%),
+    radial-gradient(circle at 85% 100%, #ffd9ec 0%, transparent 45%),
+    var(--bg);
+  color:var(--text);
+  font-family:'Noto Sans KR', sans-serif;
+  min-height:100%;
+  overflow-x:hidden;
+}
+.pixel{font-family:'Jua', 'Noto Sans KR', sans-serif; letter-spacing:.5px;}
+#app{
+  max-width:920px;
+  margin:0 auto;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+}
+.screen{display:none; flex-direction:column; flex:1; padding:18px 16px 40px; position:relative;}
+.screen.active{display:flex;}
+#app.screen-punch{animation:screenPunchKf .22s ease;}
+@keyframes screenPunchKf{
+  0%{transform:scale(1);filter:brightness(1);}
+  30%{transform:scale(1.015);filter:brightness(1.25);}
+  100%{transform:scale(1);filter:brightness(1);}
+}
+::selection{background:var(--accent2);color:#fff;}
+
+/* ---------- shared bits ---------- */
+.btn{
+  font-family:inherit;
+  border:none;
+  cursor:pointer;
+  border-radius:10px;
+  padding:14px 22px;
+  font-size:16.5px;
+  font-weight:700;
+  color:#f8fafc;
+  background:linear-gradient(180deg,var(--accent),#1e4fc4);
+  box-shadow:0 4px 0 #163a92, 0 8px 16px rgba(0,0,0,.35);
+  transition:transform .06s ease;
+}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #163a92, 0 3px 8px rgba(0,0,0,.3);}
+.btn.ghost{
+  background:transparent;
+  color:var(--text);
+  border:2px solid var(--line);
+  box-shadow:none;
+}
+.btn.ghost:active{transform:translateY(2px);}
+.btn.warn{background:linear-gradient(180deg,var(--warn),#2758b8);box-shadow:0 4px 0 #16306e,0 8px 16px rgba(0,0,0,.35);}
+.btn:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.5);}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;}
+
+.card{
+  background:linear-gradient(180deg,var(--panel),var(--panel2));
+  border:2px solid var(--line);
+  border-radius:16px;
+  padding:18px;
+}
+.badge{
+  display:inline-block;
+  font-size:14px;
+  padding:4px 9px;
+  border-radius:999px;
+  background:rgba(56,189,248,.15);
+  color:var(--accent);
+  border:1px solid rgba(56,189,248,.4);
+  letter-spacing:.5px;
+}
+.hidden{display:none !important;}
+.spacer{flex:1;}
+.center{display:flex;align-items:center;justify-content:center;}
+
+/* mascot */
+.mascot{width:56px;height:56px;flex:0 0 auto;}
+.speech{
+  position:relative;
+  background:#fff;
+  color:#0a1120;
+  border-radius:14px;
+  padding:12px 14px;
+  font-size:15.5px;
+  line-height:1.6;
+  font-weight:500;
+}
+.speech:after{
+  content:"";
+  position:absolute;
+  left:-8px; top:16px;
+  border-width:8px 10px 8px 0;
+  border-style:solid;
+  border-color:transparent #fff transparent transparent;
+}
+.speech-row{display:flex;gap:12px;align-items:flex-start;}
+
+/* ---------- title screen ---------- */
+#screen-title{align-items:center;text-align:center;justify-content:center;gap:22px;}
+.logo-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.logo-title{font-size:23px;line-height:1.9;text-shadow:0 0 14px rgba(56,189,248,.55);}
+.logo-title .hl{color:var(--accent);}
+.logo-sub{color:var(--text-dim);font-size:15.5px;max-width:520px;}
+.chip-orbit{width:150px;height:150px;margin:6px 0;filter:drop-shadow(0 0 18px rgba(56,189,248,.4));}
+.title-buttons{display:flex;flex-direction:column;gap:12px;width:min(320px,86vw);}
+.title-foot{color:var(--text-dim);font-size:14.5px;margin-top:6px;}
+.howto-card{
+  width:min(420px,88vw);
+  background:linear-gradient(180deg,var(--panel),var(--panel2));
+  border:2px solid var(--line);
+  border-radius:14px;
+  padding:16px 18px;
+  margin:18px 0;
+  text-align:left;
+}
+.howto-title{font-size:16.5px;font-weight:800;color:var(--gold);margin-bottom:8px;}
+.howto-list{margin:0;padding-left:18px;font-size:15px;line-height:1.7;color:var(--text-dim);}
+.howto-list li{margin-bottom:4px;}
+.howto-list b{color:var(--text);}
+
+/* ---------- map screen ---------- */
+#screen-map{gap:16px;}
+.map-header{display:flex;align-items:center;gap:10px;}
+.map-header h1{font-size:16px;margin:0;}
+.progress-pill{
+  margin-left:auto;
+  font-size:15px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  padding:6px 12px;
+  border-radius:999px;
+  color:var(--gold);
+}
+.map-path{
+  position:relative;
+  padding:20px 6px 10px;
+}
+.map-svg-line{position:absolute;inset:0;width:100%;height:100%;}
+.stage-node{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:14px;
+  border-radius:16px;
+  border:2px solid var(--line);
+  background:linear-gradient(180deg,var(--panel),var(--panel2));
+  margin-bottom:14px;
+  cursor:pointer;
+  transition:transform .12s ease, border-color .12s ease;
+}
+.stage-node:hover{transform:translateX(3px);}
+.stage-node.locked{opacity:.45;cursor:not-allowed;filter:grayscale(.6);}
+.stage-node.locked:hover{transform:none;}
+.stage-node.done{border-color:var(--good);}
+.stage-node .icon-wrap{
+  width:56px;height:56px;flex:0 0 auto;
+  border-radius:12px;
+  background:rgba(56,189,248,.08);
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--line);
+}
+.stage-node .info{flex:1;min-width:0;}
+.stage-node .info .num{font-size:13px;color:var(--accent);letter-spacing:1px;}
+.stage-node .info .name{font-size:17px;font-weight:700;margin:2px 0;}
+.stage-node .info .sub{font-size:15px;color:var(--text-dim);}
+.stage-node .stars{display:flex;gap:2px;flex:0 0 auto;font-size:18px;}
+.stage-node .lock-icon{flex:0 0 auto;font-size:22px;}
+
+/* ---------- intro / result screens ---------- */
+.stage-title-row{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+.stage-title-row .icon-wrap{
+  width:60px;height:60px;border-radius:14px;background:rgba(91,155,245,.14);
+  border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+}
+.stage-title-row h2{font-size:19px;margin:0;}
+.stage-title-row .tag{font-size:14px;color:var(--accent);}
+.section-label{font-size:14px;color:var(--gold);letter-spacing:1px;margin:16px 0 6px;}
+
+/* ---------- game screen ---------- */
+#screen-game{padding:14px;gap:12px;}
+.game-hud{display:flex;align-items:center;gap:10px;}
+.game-hud .title{font-size:15px;font-weight:700;}
+.game-hud .timer{
+  margin-left:auto;font-size:16px;font-weight:800;background:var(--panel);border:1px solid var(--line);
+  padding:6px 14px;border-radius:8px;color:var(--gold);min-width:52px;text-align:center;
+  transition:background .2s,border-color .2s,color .2s;
+}
+.timer-bar-track{
+  width:100%;height:16px;border-radius:8px;background:rgba(255,255,255,.1);
+  overflow:hidden;border:1px solid var(--line);margin:2px 0 4px;
+}
+.timer-bar-fill{
+  height:100%;width:100%;
+  background:linear-gradient(90deg,var(--accent2),var(--accent));
+  border-radius:8px;transition:width .15s linear,background .2s;
+}
+.game-hud .timer.timer-danger{background:rgba(240,69,95,.22);border-color:var(--bad);color:var(--bad);animation:timerDangerPulse .5s ease infinite;}
+.timer-bar-track.timer-danger .timer-bar-fill{background:var(--bad);}
+.timer-bar-track.timer-danger{animation:timerDangerPulse .5s ease infinite;border-color:var(--bad);}
+@keyframes timerDangerPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(240,69,95,.5);}
+  50%{box-shadow:0 0 16px 4px rgba(240,69,95,.7);}
+}
+.game-stage-area.danger-flash{animation:screenDangerFlash .5s ease infinite;}
+@keyframes screenDangerFlash{
+  0%,100%{box-shadow:inset 0 0 0 0 rgba(240,69,95,0);}
+  50%{box-shadow:inset 0 0 40px 10px rgba(240,69,95,.45);}
+}
+.game-stage-area{
+  flex:1;
+  background:linear-gradient(180deg,#fff6fa,#ffeaf3);
+  border:2px solid var(--line);
+  border-radius:16px;
+  position:relative;
+  min-height:420px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.game-msg{
+  position:absolute;top:10px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.55);padding:8px 16px;border-radius:999px;font-size:16.5px;
+  color:var(--text);z-index:5;text-align:center;max-width:88%;
+}
+.game-footer-hint{font-size:15px;color:var(--text-dim);text-align:center;}
+.stage-overlay{
+  position:absolute; inset:0; z-index:30;
+  background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(255,241,248,.99));
+  display:flex; flex-direction:column;
+  padding:20px; overflow-y:auto;
+  animation:overlayIn .18s ease;
+}
+@keyframes overlayIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.modal-backdrop{
+  position:fixed; inset:0; z-index:200;
+  background:rgba(10,14,22,.6);
+  display:flex; align-items:center; justify-content:center;
+  padding:20px;
+  animation:overlayIn .15s ease;
+}
+.modal-backdrop.hidden{display:none;}
+.modal-box{
+  width:min(340px,92vw);
+  background:linear-gradient(180deg,var(--panel),var(--panel2));
+  border:2px solid var(--line);
+  border-radius:16px;
+  padding:22px 20px;
+}
+.modal-msg{font-size:15px;font-weight:700;line-height:1.6;color:var(--text);text-align:center;margin-bottom:18px;}
+#btn-sound{
+  position:fixed;bottom:18px;right:18px;z-index:50;
+  width:52px;height:52px;padding:0;font-size:24px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--panel);border:2px solid var(--accent2);
+  box-shadow:0 4px 14px rgba(0,0,0,.35);
+}
+#btn-game-sound{
+  position:fixed;bottom:18px;right:18px;z-index:50;
+  width:48px;height:48px;padding:0 !important;font-size:22px !important;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--panel);border:2px solid var(--accent2);
+  box-shadow:0 4px 14px rgba(0,0,0,.35);
+  margin-left:0 !important;
+}
+.ready-overlay{align-items:center;text-align:center;}
+.ready-icon{width:84px;height:84px;filter:drop-shadow(0 4px 10px rgba(52,21,48,.15));animation:readyPop .4s ease;}
+.ready-tag{font-size:14.5px;color:var(--accent);letter-spacing:1px;font-weight:700;margin-top:10px;}
+.ready-name{font-size:22px;font-weight:900;margin:6px 0 14px;}
+.ready-mission{font-size:16.5px;font-weight:700;line-height:1.6;max-width:340px;color:var(--text);}
+.rules-card{
+  margin-top:16px;
+  width:min(380px,88vw);
+  background:var(--panel2);
+  border:2px solid var(--line);
+  border-radius:12px;
+  padding:14px 16px;
+  text-align:left;
+}
+.rules-title{font-size:14.5px;font-weight:800;color:var(--gold);margin-bottom:6px;}
+.rules-text{font-size:14px;line-height:1.65;color:var(--text-dim);}
+.ready-btn{width:min(260px,80vw);font-size:18px;padding:16px 22px;}
+@keyframes readyPop{from{transform:scale(.5);opacity:0;}to{transform:scale(1);opacity:1;}}
+
+/* ---------- result / final ---------- */
+.result-hero{text-align:center;padding:20px 0;}
+.result-stars{font-size:44px;letter-spacing:6px;margin:8px 0;}
+.result-score{font-size:40px;font-weight:900;color:var(--accent);}
+.cert{
+  background:radial-gradient(circle at 50% 0%, #fff0f7, #ffffff 70%);
+  border:2px solid var(--gold);
+  border-radius:18px;
+  padding:26px 20px;
+  text-align:center;
+}
+.cert h2{font-size:18px;color:var(--gold);margin-bottom:4px;}
+.cert .name{font-size:25px;font-weight:900;margin:14px 0 6px;line-height:1.5;}
+.cert-list{text-align:left;font-size:16.5px;line-height:1.95;color:var(--text-dim);margin-top:14px;}
+.cert-list b{color:var(--text);}
+.final-yield-num{font-size:52px;font-weight:900;color:var(--accent);margin-top:6px;}
+#final-report{margin-top:16px;}
+.confetti-layer{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:5;}
+.confetti-piece{position:absolute;top:-10px;width:8px;height:14px;opacity:.9;animation-name:confettiFall;animation-timing-function:ease-in;animation-fill-mode:forwards;}
+@keyframes confettiFall{
+  0%{transform:translateY(0) translateX(0) rotate(0deg);opacity:1;}
+  100%{transform:translateY(105vh) translateX(var(--drift)) rotate(540deg);opacity:.2;}
+}
+
+/* ---------- specific minigame styles ---------- */
+
+/* stage1 wafer cut */
+.wafer-track{position:relative;height:70px;margin:26px 26px 0;background:#fff5fa;border:1px solid var(--line);border-radius:10px;}
+.wafer-zone{position:absolute;top:0;bottom:0;background:rgba(46,204,113,.25);border-left:2px dashed var(--good);border-right:2px dashed var(--good);}
+.wafer-marker{position:absolute;top:-14px;width:6px;height:98px;background:var(--accent);box-shadow:0 0 10px var(--accent);border-radius:3px;}
+.wafer-round-info{text-align:center;font-size:16.5px;color:var(--text-dim);margin-top:10px;}
+.ingot-row{display:flex;justify-content:center;gap:6px;margin-top:14px;flex-wrap:wrap;}
+.ingot-slice{width:26px;height:26px;border-radius:50%;background:#334;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12.5px;}
+.ingot-slice.good{background:var(--good);border-color:#1f9e56;}
+.ingot-slice.mid{background:var(--warn);border-color:#2f5fc4;}
+.ingot-slice.bad{background:var(--bad);border-color:#a83140;}
+.ingot-slice.pop{animation:slicePop .3s ease;}
+@keyframes slicePop{0%{transform:scale(0);}60%{transform:scale(1.25);}100%{transform:scale(1);}}
+.wafer-track.flash-good, .slice-area.flash-good{animation:flashGood .35s ease;}
+.wafer-track.flash-bad, .slice-area.flash-bad{animation:flashBadTrack .35s ease;}
+@keyframes flashGood{0%{box-shadow:inset 0 0 0 3px var(--good);}100%{box-shadow:inset 0 0 0 0px var(--good);}}
+@keyframes flashBadTrack{0%{box-shadow:inset 0 0 0 3px var(--bad);}100%{box-shadow:inset 0 0 0 0px var(--bad);}}
+.slice-area{position:relative;flex:1;margin:10px 14px;min-height:200px;border-radius:12px;background:#fbfdff;border:1px solid var(--line);touch-action:none;}
+.slice-svg{position:absolute;inset:0;width:100%;height:100%;}
+
+/* stage2 oxidation */
+.gauge-wrap{padding:20px 24px;}
+.gauge-labels{display:flex;justify-content:space-between;font-size:14px;color:var(--text-dim);margin-top:4px;}
+.temp-slider{width:100%;margin-top:22px;accent-color:var(--accent);height:28px;}
+.thermo-wrap{margin-top:18px;}
+.thermo-svg{width:100%;height:auto;display:block;}
+
+/* stage3 photo exposure */
+.uv-stage{flex:1;margin:14px;display:flex;align-items:center;justify-content:center;min-height:160px;}
+.uv-svg{width:100%;max-width:320px;height:auto;}
+#ph-btn{touch-action:none;user-select:none;}
+
+/* shared: engineering-choice minigame (stage4, stage5) */
+.choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px;}
+.choice-card{
+  background:var(--panel2);border:2px solid var(--line);border-radius:12px;
+  padding:14px;cursor:pointer;transition:transform .08s ease, border-color .1s ease;
+}
+.choice-card:hover{transform:translateY(-2px);}
+.choice-card.sel{border-color:var(--accent);background:rgba(47,111,237,.08);}
+.choice-card.correct{border-color:var(--good);background:rgba(22,163,74,.1);}
+.choice-card.wrong{border-color:var(--bad);background:rgba(225,29,72,.08);}
+.choice-label{font-size:16.5px;font-weight:700;margin-bottom:4px;}
+.choice-sub{font-size:13.5px;color:var(--text-dim);line-height:1.4;}
+.choice-explain{padding:0 16px;font-size:14.5px;color:var(--text-dim);text-align:center;min-height:18px;}
+@media (max-width:480px){ .choice-grid{grid-template-columns:1fr;} }
+
+/* shared: interactive experiment stages (etch, iondep) */
+.exp-scene{flex:0 0 auto;display:flex;align-items:center;justify-content:center;padding:12px 20px;min-height:130px;}
+.exp-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;width:100%;max-width:220px;}
+.exp-cell{aspect-ratio:1;border-radius:3px;}
+.exp-cell.protect{background:#3a4a72;}
+.exp-cell.remove{background:#8fb4ff;}
+.exp-wafer-svg{width:100%;max-width:260px;height:auto;}
+.ionz-area{flex:1;display:flex;align-items:center;justify-content:center;padding:8px 16px;min-height:150px;border-radius:10px;}
+.ionz-svg{width:100%;max-width:300px;height:auto;}
+#ionz-slot circle{cursor:pointer;}
+.ionz-area.ionz-flash{animation:ionzFlash .3s ease;}
+.ionz-area.ionz-shake{animation:etch2Shake .3s ease;}
+@keyframes ionzFlash{0%{background:rgba(56,189,248,.25);}100%{background:transparent;}}
+.exp-status{text-align:center;padding:4px 20px 6px;font-size:16.5px;color:var(--text-dim);font-weight:700;min-height:22px;}
+.exp-card{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;}
+.exp-card .choice-icon{font-size:28px;}
+.choice-card.tried{opacity:.4;filter:grayscale(.6);}
+
+/* stage4 drag-etch */
+.etch2-grid{display:grid;gap:2px;margin:14px auto;padding:0 16px;max-width:340px;width:100%;touch-action:none;user-select:none;}
+.etch2-cell{aspect-ratio:1;border-radius:3px;}
+.etch2-cell.protect{background:var(--warn);}
+.etch2-cell.remove{background:#8fb4ff;}
+.etch2-cell.etch2-fail{background:var(--bad) !important;}
+@keyframes etch2Shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+.etch2-grid.etch2-shake{animation:etch2Shake .35s ease;}
+
+
+/* stage6 wiring */
+.wire-area{position:relative;flex:1;margin:14px;}
+.wire-terminal{
+  position:absolute;width:26px;height:26px;border-radius:50%;
+  border:3px solid #341530;transform:translate(-50%,-50%);cursor:pointer;
+  box-shadow:0 0 8px rgba(52,21,48,.3);
+}
+.wire-terminal.sel{outline:3px solid #341530;outline-offset:2px;}
+.wire-terminal.connected{opacity:.55;cursor:default;}
+.wire-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.oneline-area{position:relative;flex:1;margin:14px;min-height:220px;touch-action:none;}
+.oneline-node{
+  position:absolute;width:20px;height:20px;border-radius:50%;
+  background:#93c5fd;border:3px solid var(--line);transform:translate(-50%,-50%);
+  cursor:pointer;z-index:2;
+}
+.oneline-node.oneline-inner{background:var(--gold);}
+.oneline-node.visited{background:var(--accent2);border-color:var(--accent);}
+.oneline-fail{stroke-dasharray:4 3 !important;}
+
+/* stage7 EDS report */
+.eds-stage{flex:0 0 auto;display:flex;align-items:center;justify-content:center;padding:10px 20px;}
+.eds-probe-svg{width:100%;max-width:280px;height:auto;}
+.eds-report{padding:0 16px;overflow-y:auto;}
+.yield-hero{text-align:center;padding:10px 0 6px;}
+.yield-num{font-size:44px;font-weight:900;color:var(--accent);}
+.yield-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;max-width:340px;margin:10px auto 18px;}
+.yield-chip{aspect-ratio:1;border-radius:5px;opacity:0;animation:chipIn .35s ease forwards;}
+.yield-chip.pass{background:var(--good);}
+.yield-chip.fail{background:var(--bad);}
+@keyframes chipIn{from{opacity:0;transform:scale(.4);}to{opacity:1;transform:scale(1);}}
+.report-card{border-radius:12px;border:2px solid var(--line);padding:12px 14px;margin:0 0 10px;font-size:15px;}
+.report-card.bad{border-color:var(--bad);background:rgba(225,29,72,.06);}
+.report-card.good{border-color:var(--good);background:rgba(22,163,74,.06);}
+
+/* stage7 EDS conveyor belt */
+.belt-wrap{position:relative;flex:1;margin:10px 14px;min-height:170px;background:repeating-linear-gradient(90deg,#e2ecff 0 18px,#d3e2ff 18px 20px);border:2px solid var(--line);border-radius:10px;overflow:hidden;touch-action:none;}
+.belt-zone{position:absolute;left:8%;top:0;bottom:0;width:14%;background:rgba(56,189,248,.18);border-left:2px dashed var(--accent2);border-right:2px dashed var(--accent2);pointer-events:none;}
+.eds-chip{
+  position:absolute;top:50%;width:64px;height:64px;transform:translate(-50%,-50%);
+  background:#26375f;border:3px solid var(--gold);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  touch-action:none;user-select:none;
+}
+.eds-chip.eds-defect{border-color:var(--bad);box-shadow:0 0 8px rgba(240,69,95,.5);}
+.eds-chip.eds-normal{border-color:var(--accent2);}
+.eds-chip-v{font-size:12.5px;font-weight:700;color:#fff;}
+.eds-chip.eds-reject-good{animation:edsPop .22s ease forwards;border-color:var(--good);}
+.eds-chip.eds-reject-bad{animation:edsShrink .22s ease forwards;border-color:var(--bad);}
+@keyframes edsPop{to{transform:translate(-50%,-50%) scale(0) rotate(90deg);opacity:0;}}
+@keyframes edsShrink{to{transform:translate(-50%,-50%) scale(1.3);opacity:0;filter:brightness(2);}}
+
+/* stage8 packaging cutscene */
+.pkg-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 20px;min-height:160px;gap:6px;}
+.pkg-svg{width:100%;max-width:320px;height:auto;}
+.pkg-caption{text-align:center;padding:6px 20px 18px;font-size:16.5px;color:var(--text-dim);font-weight:700;}
+
+@media (max-width:480px){
+  .logo-title{font-size:18px;}
+  .stage-node .info .name{font-size:15px;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ TITLE ============ -->
+  <section id="screen-title" class="screen active">
+    <button class="btn ghost snd-toggle" id="btn-sound">🔊</button>
+    <div class="spacer"></div>
+    <div class="logo-wrap">
+      <svg class="chip-orbit" viewBox="0 0 100 100">
+        <defs>
+          <radialGradient id="chipGlow" cx="50%" cy="50%" r="60%">
+            <stop offset="0%" stop-color="#38bdf8" stop-opacity=".55"/>
+            <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="chipFace" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#1c2c4d"/>
+            <stop offset="100%" stop-color="#0d1526"/>
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r="48" fill="url(#chipGlow)"/>
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#1e2f52" stroke-width="2"/>
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#2f6fed" stroke-width="2" stroke-dasharray="10 240" >
+          <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="4s" repeatCount="indefinite"/>
+        </circle>
+        <rect x="30" y="30" width="40" height="40" rx="6" fill="url(#chipFace)" stroke="#38bdf8" stroke-width="2"/>
+        <rect x="40" y="40" width="20" height="20" rx="3" fill="#38bdf8" opacity=".85">
+          <animate attributeName="opacity" values=".85;.4;.85" dur="2.2s" repeatCount="indefinite"/>
+        </rect>
+        <g stroke="#5b9bf5" stroke-width="2">
+          <line x1="30" y1="40" x2="18" y2="40"/><line x1="30" y1="60" x2="18" y2="60"/>
+          <line x1="70" y1="40" x2="82" y2="40"/><line x1="70" y1="60" x2="82" y2="60"/>
+          <line x1="40" y1="30" x2="40" y2="18"/><line x1="60" y1="30" x2="60" y2="18"/>
+          <line x1="40" y1="70" x2="40" y2="82"/><line x1="60" y1="70" x2="60" y2="82"/>
+        </g>
+      </svg>
+      <div class="logo-title pixel">실리 팹<br><span class="hl">SILI FAB</span></div>
+      <div class="logo-sub">삼성전자 '반도체 8대 공정' 순서를 그대로 따라가며<br>웨이퍼 한 장을 완제품 반도체로 만들어보는 미니게임</div>
+    </div>
+    <div class="howto-card">
+      <div class="howto-title">🎮 게임 방법</div>
+      <ul class="howto-list">
+        <li><b>1~8단계</b>가 순서대로 이어져요. 각 공정마다 <b>서로 다른 미니게임</b>이 나와요.</li>
+        <li>미니게임을 잘 해낼수록 그 공정의 <b>점수</b>가 올라가요.</li>
+        <li>일부 공정은 <b>제한 시간</b>이 있어요. 시간이 얼마 안 남으면 화면이 붉게 경고해요 — 서두르세요!</li>
+        <li>실수하면 즉시 실패하는 공정도 있으니 신중하게 플레이하세요.</li>
+        <li>8단계를 모두 마치면 8개 점수의 평균으로 <b>최종 수율(%)</b>과 <b>A~F 등급</b>이 매겨져요.</li>
+      </ul>
+    </div>
+    <div class="title-buttons">
+      <button class="btn" id="btn-start">🚀 공정 시작하기</button>
+      <button class="btn ghost" id="btn-continue">이어하기</button>
+      <button class="btn ghost" id="btn-reset">진행 초기화</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="title-foot">고1 진로/과학 수업용 · 8개 공정을 순서대로 클리어해보세요</div>
+  </section>
+
+  <!-- ============ MAP ============ -->
+  <section id="screen-map" class="screen">
+    <div class="map-header">
+      <button class="btn ghost" id="btn-map-home" style="padding:8px 12px;font-size:15px;">◀ 처음으로</button>
+      <h1 class="pixel">공정 지도</h1>
+      <div class="progress-pill" id="map-progress">0 / 8</div>
+    </div>
+    <div class="map-path" id="map-path"></div>
+  </section>
+
+  <!-- ============ GAME (explanation + minigame + stage-clear all live here) ============ -->
+  <section id="screen-game" class="screen">
+    <div class="game-hud">
+      <button class="btn ghost" id="btn-game-map" style="padding:6px 10px;font-size:14px;">◀</button>
+      <div class="title pixel" id="game-title" style="font-size:14px;"></div>
+      <button class="btn ghost snd-toggle" id="btn-game-sound" style="padding:6px 10px;font-size:14px;margin-left:auto;">🔊</button>
+      <div class="timer" id="game-timer"><span id="timer-text">--</span></div>
+    </div>
+    <div class="timer-bar-track" id="timer-bar-track">
+      <div class="timer-bar-fill" id="timer-bar-fill"></div>
+    </div>
+    <div class="game-stage-area" id="game-stage-area"></div>
+    <div class="game-footer-hint" id="game-hint"></div>
+  </section>
+
+  <!-- ============ FINAL ============ -->
+  <section id="screen-final" class="screen">
+    <div class="confetti-layer" id="confetti-layer"></div>
+    <div class="spacer"></div>
+    <div class="cert">
+      <div class="badge">FINAL YIELD</div>
+      <div class="final-yield-num" id="final-yield-num">0<span style="font-size:26px;">%</span></div>
+      <div class="name" id="final-grade">S급 엔지니어</div>
+      <div id="final-total" style="color:var(--gold);font-size:16.5px;">총점 0점</div>
+    </div>
+    <div id="final-report"></div>
+    <div class="cert-list" id="final-list"></div>
+    <div class="spacer"></div>
+    <div class="btn-row">
+      <button class="btn ghost" id="btn-final-map">공정 지도로</button>
+      <button class="btn" id="btn-final-home" style="flex:1;">처음 화면으로</button>
+    </div>
+  </section>
+
+  <div class="modal-backdrop hidden" id="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-msg" id="modal-msg"></div>
+      <div class="btn-row">
+        <button class="btn ghost" id="modal-cancel">취소</button>
+        <button class="btn warn" id="modal-ok" style="flex:1;">확인</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   0. DATA
+   ============================================================ */
+const STAGES = [
+  { key:'wafer', name:'웨이퍼 제조', sub:'싹둑! 칼각 자르기', color:'#93c5fd',
+    desc:'모래(이산화규소)에서 뽑아낸 순도 99.9999999% 실리콘을 녹였다 굳혀 둥근 기둥 모양의 "잉곳"을 만들고, 이것을 다이아몬드 톱으로 종이보다 얇게 썰어요. 그 얇은 조각 한 장이 바로 반도체의 도화지, "웨이퍼"예요. 모든 회로는 이 위에 그려져요.',
+    howto:'웨이퍼 원판이 나타나면 사라지기 전에 손가락으로 원판을 가로질러 쓱 그으세요. 원판 중심에 가깝게, 빠르게 그을수록 고득점!',
+    mission:'✂️ 웨이퍼 원판이 사라지기 전에 손가락으로 가로질러 그어 슬라이스하라!',
+    icon:'ingot' },
+  { key:'oxidation', name:'산화 공정', sub:'두께 맞추기 타이머', color:'#60a5fa',
+    desc:'웨이퍼에 산소 가스를 투입하면 표면에 아주 얇은 산화막(SiO₂)이 자라나요. 이 막은 전기가 통하지 않는 절연층이자, 다음 공정에서 회로가 아닌 부분을 보호하는 방패예요. 너무 일찍 끄면 막이 얇고 부실해지고, 너무 늦으면 과열되어 웨이퍼가 타버려요.',
+    howto:'게이지가 차오릅니다. 목표 두께(100nm) 구간에 딱 들어왔을 때 [가스 차단!]을 눌러 멈추세요.',
+    mission:'🧪 두께가 차오르고 있다! 정확히 100nm일 때 [가스 차단!]을 눌러라!',
+    icon:'furnace' },
+  { key:'photo', name:'포토 공정', sub:'마스크 정렬', color:'#38bdf8',
+    desc:'빛에 반응하는 감광액(PR)을 웨이퍼에 바른 뒤, 회로 무늬가 뚫린 "마스크"를 웨이퍼 위 정확한 위치와 각도에 맞춰야 자외선(UV)이 원하는 모양 그대로 회로 패턴을 새겨요. 위치나 각도가 조금만 어긋나도 패턴이 틀어져요.',
+    howto:'파란 마스크를 드래그해서 점선 목표 위치로 옮기고, 슬라이더로 각도까지 맞춘 뒤 [노광!] 버튼을 누르세요.',
+    mission:'🎯 마스크를 드래그하고 회전시켜 점선 목표에 정확히 정렬하라!',
+    icon:'mask' },
+  { key:'etch', name:'식각 공정', sub:'빗겨 자르기 & 패턴 깎기', color:'#2f6fed',
+    desc:'노광되지 않아 감광액이 씻겨나간 부분, 즉 회로가 아닌 "군더더기"를 부식 가스로 제거해야 원하는 회로 모양만 남아요. 회로선을 살짝이라도 건드리면 그 즉시 칩 전체가 대형 불량이 돼요 — 절묘한 각도로 빗겨가며 깎아내야 해요.',
+    howto:'손가락으로 화면을 문질러 파란 칸(제거할 부분)을 깎아내세요. 노란 회로선은 절대 건드리면 안 돼요!',
+    mission:'✋ 회로선을 피해서 나머지 부분을 문질러 깎아내라! 한 번의 실수는 대형 불량!',
+    icon:'etch' },
+  { key:'iondep', name:'박막증착 & 이온주입', sub:'이온 순간 저격', color:'#7dd3fc',
+    desc:'순수한 실리콘은 사실 전기가 잘 통하지 않아요. 여기에 특정 불순물 이온을 얇은 막 위에 강제로 심어 넣어야(도핑) 비로소 전류를 조절할 수 있는 "반도체"다운 성질을 갖게 돼요. 격자 슬롯 하나하나에 순식간에 이온을 정확히 박아 넣어야 균일한 도핑이 완성돼요.',
+    howto:'격자 슬롯이 번쩍이며 나타났다가 순식간에 사라져요. 사라지기 전에 재빨리 탭해서 이온을 명중시키세요. 라운드가 지날수록 더 빨라져요!',
+    mission:'⚡ 반짝이는 슬롯을 사라지기 전에 재빨리 탭해서 저격하라!',
+    icon:'iongun' },
+  { key:'metal', name:'금속 배선 공정', sub:'한붓그리기 회로 연결', color:'#3b82f6',
+    desc:'아무리 좋은 트랜지스터를 잔뜩 만들어놔도, 서로 연결되지 않으면 그냥 "따로 노는 부품 더미"일 뿐이에요. 구리·알루미늄 같은 금속선으로 모든 전극을 이어줘야 비로소 전기가 통하는 하나의 완전한 회로가 완성돼요. 배선이 서로 겹치면 그 즉시 쇼트(단락)가 나요.',
+    howto:'펜을 떼지 말고 모든 전극 노드를 한붓그리기로 이으세요. 가운데(금색) 노드 2개도 순서 중 알맞은 자리에 끼워 넣어야 하고, 그려진 선이 서로 겹치면 그 순간 실패예요.',
+    mission:'✏️ 가운데 노드 2개까지 알맞게 끼워서 한붓그리기로 모두 이어라! 선이 겹치면 쇼트!',
+    icon:'circuit' },
+  { key:'eds', name:'EDS 공정', sub:'리듬 & 리젝터', color:'#0ea5e9',
+    desc:'EDS(Electrical Die Sorting)는 컨베이어 벨트를 지나가는 칩 하나하나에 실제 전기 신호를 흘려보내 정상적으로 동작하는지 검사하는 최종 전기 테스트예요. 전압 수치를 보고 불량 칩만 재빨리 골라내 쳐내야 해요 — 정상 칩까지 잘못 쳐내면 오히려 손해예요.',
+    howto:'컨베이어 벨트 위 칩의 전압을 보고, 불량(빨간 테두리)만 탭해서 쳐내세요. 정상(파란 테두리)은 건드리지 말고 그냥 흘려보내세요.',
+    mission:'⚡ 벨트를 지나는 불량 칩만 재빨리 탭해서 쳐내라!',
+    icon:'tester' },
+  { key:'package', name:'패키징 공정', sub:'완충 젤리 캡슐화', color:'#bae6fd',
+    desc:'양품 판정을 받은 칩도 맨몸으로 두면 충격 한 번에 손상돼요. 그래서 보호용 에폭시 젤리 트레이에 담고, 충격이 가해지지 않도록 딱 맞는 압력으로 덮개를 가압 밀봉해야 우리가 아는 완제품 반도체가 돼요. 이게 바로 여러분이 만든 반도체의 마지막 여정이에요!',
+    howto:'칩을 젤리 트레이 안으로 드래그한 뒤, 덮개를 꾹 눌러 목표 압력 구간에서 손을 떼 밀봉하세요.',
+    mission:'🍮 칩을 젤리 트레이에 담고, 딱 맞는 압력으로 덮개를 밀봉하라!',
+    icon:'package' }
+];
+
+/* icon renderer: returns inline SVG markup for a given stage icon key */
+function stageIconSVG(key, c){
+  const S = {
+    ingot: `<svg viewBox="0 0 40 40"><ellipse cx="20" cy="10" rx="10" ry="4" fill="${c}"/><rect x="10" y="10" width="20" height="18" fill="${c}"/><ellipse cx="20" cy="28" rx="10" ry="4" fill="${c}"/><rect x="10" y="16" width="20" height="2" fill="#0a1120" opacity=".4"/><rect x="10" y="22" width="20" height="2" fill="#0a1120" opacity=".4"/></svg>`,
+    furnace: `<svg viewBox="0 0 40 40"><rect x="8" y="14" width="24" height="20" rx="2" fill="#334" stroke="${c}" stroke-width="2"/><circle cx="20" cy="24" r="6" fill="${c}"/><rect x="16" y="6" width="8" height="10" fill="#334" stroke="${c}" stroke-width="2"/></svg>`,
+    mask: `<svg viewBox="0 0 40 40"><rect x="6" y="6" width="28" height="28" rx="2" fill="none" stroke="${c}" stroke-width="2"/><line x1="6" y1="14" x2="34" y2="14" stroke="${c}"/><line x1="6" y1="22" x2="34" y2="22" stroke="${c}"/><line x1="6" y1="30" x2="34" y2="30" stroke="${c}"/><line x1="14" y1="6" x2="14" y2="34" stroke="${c}"/><line x1="26" y1="6" x2="26" y2="34" stroke="${c}"/></svg>`,
+    etch: `<svg viewBox="0 0 40 40"><path d="M14 6 h12 v8 l8 16 a3 3 0 0 1 -3 4 H9 a3 3 0 0 1 -3 -4 l8 -16 z" fill="none" stroke="${c}" stroke-width="2"/><circle cx="17" cy="28" r="1.6" fill="${c}"/><circle cx="22" cy="31" r="1.2" fill="${c}"/><circle cx="20" cy="24" r="1" fill="${c}"/></svg>`,
+    iongun: `<svg viewBox="0 0 40 40"><rect x="6" y="18" width="16" height="8" rx="2" fill="${c}"/><rect x="20" y="20" width="10" height="4" fill="${c}"/><circle cx="30" cy="22" r="7" fill="none" stroke="${c}" stroke-width="2"/><circle cx="30" cy="22" r="2" fill="${c}"/></svg>`,
+    circuit: `<svg viewBox="0 0 40 40"><rect x="13" y="13" width="14" height="14" rx="2" fill="${c}"/><g stroke="${c}" stroke-width="2"><line x1="13" y1="17" x2="6" y2="17"/><line x1="13" y1="23" x2="6" y2="23"/><line x1="27" y1="17" x2="34" y2="17"/><line x1="27" y1="23" x2="34" y2="23"/><line x1="17" y1="13" x2="17" y2="6"/><line x1="23" y1="13" x2="23" y2="6"/><line x1="17" y1="27" x2="17" y2="34"/><line x1="23" y1="27" x2="23" y2="34"/></g></svg>`,
+    tester: `<svg viewBox="0 0 40 40"><rect x="6" y="10" width="16" height="16" rx="2" fill="#334" stroke="${c}" stroke-width="2"/><circle cx="26" cy="26" r="7" fill="none" stroke="${c}" stroke-width="2"/><line x1="31" y1="31" x2="36" y2="36" stroke="${c}" stroke-width="2"/></svg>`,
+    package: `<svg viewBox="0 0 40 40"><rect x="8" y="12" width="24" height="20" rx="2" fill="${c}"/><path d="M8 12 L20 6 L32 12" fill="none" stroke="${c}" stroke-width="2"/><path d="M14 20 L18 24 L26 15" fill="none" stroke="#0a1120" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+  };
+  return S[key] || '';
+}
+
+/* ============================================================
+   1. STATE
+   ============================================================ */
+const STORE_KEY = 'sili_fab_state_v2';
+let state = null;
+function freshState(){
+  return {
+    unlocked:[true,false,false,false,false,false,false,false],
+    scores:[null,null,null,null,null,null,null,null],
+    diag:[null,null,null,null,null,null,null,null]
+  };
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){
+      const p = JSON.parse(raw);
+      if(p && p.unlocked && p.unlocked.length===8){
+        if(!p.diag || p.diag.length!==8) p.diag = [null,null,null,null,null,null,null,null];
+        return p;
+      }
+    }
+  }catch(e){}
+  return freshState();
+}
+function saveState(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
+function anyProgress(){ return state.scores.some(s=>s!==null) || state.unlocked.slice(1).some(Boolean); }
+
+/* ============================================================
+   2. NAV / SCREENS
+   ============================================================ */
+const screens = {};
+document.querySelectorAll('.screen').forEach(el=>screens[el.id]=el);
+function showScreen(id){
+  Object.values(screens).forEach(s=>s.classList.remove('active'));
+  screens[id].classList.add('active');
+  window.scrollTo(0,0);
+}
+
+/* custom styled confirm modal, replacing the native browser confirm() popup */
+const modalBackdrop = document.getElementById('modal-backdrop');
+const modalMsg = document.getElementById('modal-msg');
+const modalOkBtn = document.getElementById('modal-ok');
+const modalCancelBtn = document.getElementById('modal-cancel');
+function showConfirm(message, onOk){
+  modalMsg.textContent = message;
+  modalBackdrop.classList.remove('hidden');
+  const cleanup = ()=>{
+    modalBackdrop.classList.add('hidden');
+    modalOkBtn.removeEventListener('click', onOkClick);
+    modalCancelBtn.removeEventListener('click', onCancelClick);
+  };
+  function onOkClick(){ cleanup(); onOk(); }
+  function onCancelClick(){ cleanup(); }
+  modalOkBtn.addEventListener('click', onOkClick);
+  modalCancelBtn.addEventListener('click', onCancelClick);
+}
+
+/* ============================================================
+   3. MAP RENDER
+   ============================================================ */
+const mapPath = document.getElementById('map-path');
+const mapProgress = document.getElementById('map-progress');
+
+function starsFor(score){
+  if(score===null) return '';
+  if(score>=78) return '★★★';
+  if(score>=50) return '★★☆';
+  if(score>=25) return '★☆☆';
+  return '☆☆☆';
+}
+
+function renderMap(){
+  mapPath.innerHTML = '';
+  let cleared = 0;
+  STAGES.forEach((st,i)=>{
+    if(state.scores[i]!==null) cleared++;
+    const locked = !state.unlocked[i];
+    const done = state.scores[i]!==null;
+    const node = document.createElement('div');
+    node.className = 'stage-node' + (locked?' locked':'') + (done?' done':'');
+    node.innerHTML = `
+      <div class="icon-wrap">${stageIconSVG(st.icon, st.color)}</div>
+      <div class="info">
+        <div class="num">STAGE ${i+1}</div>
+        <div class="name">${st.name}</div>
+        <div class="sub">${st.sub}</div>
+      </div>
+      ${locked ? '<div class="lock-icon">🔒</div>' : `<div class="stars">${starsFor(state.scores[i]) || '▶'}</div>`}
+    `;
+    if(!locked){
+      node.addEventListener('click', ()=>enterStage(i));
+    }
+    mapPath.appendChild(node);
+  });
+  mapProgress.textContent = `${cleared} / 8`;
+}
+
+/* ============================================================
+   4. AUDIO (background ambience + success chimes, all synthesized)
+   ============================================================ */
+let audioCtx = null, masterGain = null, ambienceNodes = null;
+let muted = false;
+try{ muted = localStorage.getItem('sili_fab_muted')==='1'; }catch(e){}
+
+function ensureAudio(){
+  if(audioCtx){ if(audioCtx.state==='suspended') audioCtx.resume(); return; }
+  try{
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = muted ? 0 : 1;
+    masterGain.connect(audioCtx.destination);
+  }catch(e){ audioCtx = null; }
+}
+function setMuted(v){
+  muted = v;
+  try{ localStorage.setItem('sili_fab_muted', v?'1':'0'); }catch(e){}
+  if(masterGain){
+    const t = audioCtx.currentTime;
+    masterGain.gain.cancelScheduledValues(t);
+    masterGain.gain.linearRampToValueAtTime(v?0:1, t+0.15);
+  }
+  document.querySelectorAll('.snd-toggle').forEach(b=> b.textContent = v?'🔇':'🔊');
+}
+function playTone(freq, t0, dur, type, peakGain){
+  if(!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = type||'sine';
+  osc.frequency.value = freq;
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(peakGain, t0+0.02);
+  g.gain.exponentialRampToValueAtTime(0.001, t0+dur);
+  osc.connect(g); g.connect(masterGain);
+  osc.start(t0); osc.stop(t0+dur+0.03);
+}
+const STAGE_BASE_FREQ = [392.00,440.00,493.88,587.33,659.25,739.99,880.00,987.77];
+// Major-pentatonic-ish scale degrees (relative multipliers of the stage root) —
+// picked so every melody note lands on a pleasant, "cute" music-box interval.
+const SCALE_STEPS = [1, 9/8, 5/4, 3/2, 5/3, 2, 9/4];
+// 8 genuinely different little tunes, one per stage (not just the same shape transposed).
+const STAGE_MELODIES = [
+  [0,2,4,2,0,2,4,5],
+  [0,1,2,3,2,1,0,3],
+  [4,2,0,2,4,5,6,4],
+  [0,0,2,2,4,4,2,0],
+  [2,4,5,4,2,0,2,4],
+  [0,3,2,4,3,5,4,2],
+  [4,5,6,4,2,4,2,0],
+  [0,2,4,5,6,5,4,2]
+];
+function startAmbience(i){
+  stopAmbience();
+  if(!audioCtx) return;
+  const base = STAGE_BASE_FREQ[i%STAGE_BASE_FREQ.length];
+  const melody = STAGE_MELODIES[i%STAGE_MELODIES.length];
+  const bpm = 132;
+  const stepDur = 60/bpm/2; // nominal 8th note; actual spacing gets a skip/swing below
+  const t0 = audioCtx.currentTime;
+  const g = audioCtx.createGain();
+  g.gain.value = 0;
+  g.connect(masterGain);
+  g.gain.linearRampToValueAtTime(0.3, t0+0.35);
+
+  let nextNoteTime = t0 + 0.05;
+  let step = 0;
+  const lookahead = 0.15;
+  // "skip" swing: long-short-long-short spacing so the loop bounces/dances
+  // instead of ticking evenly — this is what actually reads as "playful".
+  function stepLength(stepIdx){ return stepIdx%2===0 ? stepDur*1.3 : stepDur*0.7; }
+
+  function scheduleNote(stepIdx, time, dur){
+    // light bell "ting" accent on the first beat of every 4 — bright, not a bass thud
+    if(stepIdx%4===0){
+      const ting = audioCtx.createOscillator();
+      const tg = audioCtx.createGain();
+      ting.type='sine';
+      ting.frequency.value = base*3;
+      tg.gain.setValueAtTime(0.05, time);
+      tg.gain.exponentialRampToValueAtTime(0.001, time+0.12);
+      ting.connect(tg); tg.connect(g);
+      ting.start(time); ting.stop(time+0.13);
+    }
+    // cute chiptune melody note: square (bright/8-bit) + triangle (body) blended,
+    // with a tiny upward pitch "hop" into the note for a springy attack.
+    const degree = melody[stepIdx % melody.length];
+    const freq = base * SCALE_STEPS[degree];
+    const noteDur = Math.min(dur*0.85, 0.32);
+
+    const sq = audioCtx.createOscillator();
+    const sqg = audioCtx.createGain();
+    sq.type='square';
+    sq.frequency.setValueAtTime(freq*0.9, time);
+    sq.frequency.exponentialRampToValueAtTime(freq, time+0.035);
+    sqg.gain.setValueAtTime(0.001, time);
+    sqg.gain.linearRampToValueAtTime(0.11, time+0.012);
+    sqg.gain.exponentialRampToValueAtTime(0.001, time+noteDur);
+    sq.connect(sqg); sqg.connect(g);
+    sq.start(time); sq.stop(time+noteDur+0.02);
+
+    const tri = audioCtx.createOscillator();
+    const trig = audioCtx.createGain();
+    tri.type='triangle';
+    tri.frequency.setValueAtTime(freq*0.9, time);
+    tri.frequency.exponentialRampToValueAtTime(freq, time+0.035);
+    trig.gain.setValueAtTime(0.001, time);
+    trig.gain.linearRampToValueAtTime(0.14, time+0.012);
+    trig.gain.exponentialRampToValueAtTime(0.001, time+noteDur);
+    tri.connect(trig); trig.connect(g);
+    tri.start(time); tri.stop(time+noteDur+0.02);
+
+    const sparkle = audioCtx.createOscillator();
+    const sg = audioCtx.createGain();
+    sparkle.type='sine';
+    sparkle.frequency.value = freq*2;
+    sg.gain.setValueAtTime(0.001, time);
+    sg.gain.linearRampToValueAtTime(0.06, time+0.008);
+    sg.gain.exponentialRampToValueAtTime(0.001, time+noteDur*0.55);
+    sparkle.connect(sg); sg.connect(g);
+    sparkle.start(time); sparkle.stop(time+noteDur*0.6);
+  }
+
+  const timerId = setInterval(()=>{
+    if(!audioCtx) return;
+    while(nextNoteTime < audioCtx.currentTime + lookahead){
+      const len = stepLength(step);
+      scheduleNote(step, nextNoteTime, len);
+      nextNoteTime += len;
+      step++;
+    }
+  }, 50);
+  ambienceNodes = { timerId, gain:g };
+}
+function stopAmbience(){
+  if(!ambienceNodes){ return; }
+  if(ambienceNodes.timerId) clearInterval(ambienceNodes.timerId);
+  if(audioCtx && ambienceNodes.gain){
+    const t = audioCtx.currentTime;
+    try{
+      ambienceNodes.gain.gain.cancelScheduledValues(t);
+      ambienceNodes.gain.gain.linearRampToValueAtTime(0, t+0.25);
+    }catch(e){}
+  }
+  ambienceNodes = null;
+}
+function playSuccessChime(i){
+  if(!audioCtx) return;
+  const base = STAGE_BASE_FREQ[i%STAGE_BASE_FREQ.length];
+  const t = audioCtx.currentTime;
+  playTone(base*0.5, t, 0.16, 'square', 0.16);
+  playTone(base, t, 0.2, 'sine', 0.26);
+  playTone(base*1.25, t+0.08, 0.2, 'sine', 0.24);
+  playTone(base*1.5, t+0.16, 0.32, 'sine', 0.28);
+  playTone(base*2, t+0.16, 0.24, 'triangle', 0.12);
+  screenPunch();
+}
+function playFinalFanfare(){
+  if(!audioCtx) return;
+  const t = audioCtx.currentTime;
+  [523.25,659.25,783.99,1046.5].forEach((f,idx)=>{
+    playTone(f, t+idx*0.12, 0.4, 'triangle', 0.24);
+    playTone(f*0.5, t+idx*0.12, 0.4, 'square', 0.1);
+  });
+  playTone(1046.5, t+0.5, 1.1, 'sine', 0.2);
+  playTone(1568.0, t+0.5, 1.1, 'sine', 0.12);
+  screenPunch();
+}
+function screenPunch(){
+  const app = document.getElementById('app');
+  if(!app) return;
+  app.classList.remove('screen-punch');
+  void app.offsetWidth;
+  app.classList.add('screen-punch');
+}
+function playDangerBeep(){
+  if(!audioCtx) return;
+  const t = audioCtx.currentTime;
+  playTone(880, t, 0.12, 'square', 0.16);
+  playTone(880, t+0.16, 0.12, 'square', 0.16);
+}
+document.querySelectorAll('.snd-toggle').forEach(b=>{
+  b.textContent = muted?'🔇':'🔊';
+  b.addEventListener('click', ()=>{ ensureAudio(); setMuted(!muted); });
+});
+
+/* ============================================================
+   5. GAME RUNNER — explanation, minigame and stage-clear all
+      happen inside #screen-game as overlays on game-stage-area,
+      and stages auto-chain 1 -> 8 without extra screens.
+   ============================================================ */
+let currentStageIndex = null;
+const gameArea = document.getElementById('game-stage-area');
+const gameTitle = document.getElementById('game-title');
+const gameTimerEl = document.getElementById('game-timer');
+const timerTextEl = document.getElementById('timer-text');
+const timerBarFill = document.getElementById('timer-bar-fill');
+const timerBarTrack = document.getElementById('timer-bar-track');
+const gameHint = document.getElementById('game-hint');
+let activeCleanup = null; // function to stop current minigame (timers/listeners)
+let timerDangerActive = false;
+
+const DANGER_FRACTION = 0.28;
+function resetGameTimer(){
+  timerDangerActive = false;
+  gameTimerEl.classList.remove('timer-danger');
+  timerBarTrack.classList.remove('timer-danger');
+  gameArea.classList.remove('danger-flash');
+  timerTextEl.textContent = '--';
+  timerBarFill.style.width = '100%';
+}
+function setGameTimer(remaining, total){
+  const clamped = Math.max(0, remaining);
+  const fraction = total>0 ? clamped/total : 1;
+  timerTextEl.textContent = Math.ceil(clamped)+'s';
+  timerBarFill.style.width = Math.max(0, Math.min(100, fraction*100))+'%';
+  const inDanger = fraction <= DANGER_FRACTION;
+  if(inDanger && !timerDangerActive){
+    timerDangerActive = true;
+    gameTimerEl.classList.add('timer-danger');
+    timerBarTrack.classList.add('timer-danger');
+    gameArea.classList.add('danger-flash');
+    playDangerBeep();
+  } else if(!inDanger && timerDangerActive){
+    timerDangerActive = false;
+    gameTimerEl.classList.remove('timer-danger');
+    timerBarTrack.classList.remove('timer-danger');
+    gameArea.classList.remove('danger-flash');
+  }
+}
+
+function enterStage(i){
+  currentStageIndex = i;
+  const st = STAGES[i];
+  if(activeCleanup){ try{ activeCleanup(); }catch(e){} activeCleanup=null; }
+  gameArea.innerHTML = '';
+  resetGameTimer();
+  gameHint.textContent = '';
+  gameTitle.textContent = `STAGE ${i+1} / 8 · ${st.name}`;
+  showScreen('screen-game');
+  ensureAudio();
+  startAmbience(i);
+  renderExplainOverlay(i);
+}
+
+function renderExplainOverlay(i){
+  const st = STAGES[i];
+  const ov = document.createElement('div');
+  ov.className = 'stage-overlay ready-overlay';
+  ov.innerHTML = `
+    <div class="spacer"></div>
+    <div class="ready-icon">${stageIconSVG(st.icon, st.color)}</div>
+    <div class="ready-tag">STAGE ${i+1} / 8</div>
+    <div class="ready-name">${st.name}</div>
+    <div class="ready-mission">${st.mission}</div>
+    <div class="rules-card">
+      <div class="rules-title">📋 게임 규칙</div>
+      <div class="rules-text">${st.howto}</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn ready-btn" id="ov-start">시작 ▶</button>
+  `;
+  gameArea.appendChild(ov);
+  ov.querySelector('#ov-start').addEventListener('click', ()=>{ ov.remove(); launchMinigame(i); });
+}
+
+function launchMinigame(i){
+  const st = STAGES[i];
+  gameHint.textContent = st.mission;
+  resetGameTimer();
+  const module = STAGE_GAMES[st.key];
+  activeCleanup = module(gameArea, (score, diag)=>onStageComplete(i, score, diag), { setTimer: setGameTimer, setMsg: msgFn });
+}
+
+function msgFn(text, ms){
+  let el = gameArea.querySelector('.game-msg');
+  if(!el){ el = document.createElement('div'); el.className='game-msg'; gameArea.appendChild(el); }
+  el.textContent = text;
+  el.style.display='block';
+  if(ms){ clearTimeout(el._t); el._t = setTimeout(()=>{ el.style.display='none'; }, ms); }
+}
+
+function onStageComplete(i, rawScore, diag){
+  if(activeCleanup){ try{ activeCleanup(); }catch(e){} activeCleanup=null; }
+  const score = Math.max(0, Math.min(100, Math.round(rawScore)));
+  const prev = state.scores[i];
+  if(prev===null || score>=prev){
+    state.scores[i] = score;
+    state.diag[i] = diag || null;
+  }
+  if(i+1 < STAGES.length) state.unlocked[i+1] = true;
+  saveState();
+  playSuccessChime(i);
+  renderCompleteOverlay(i, score);
+}
+
+function renderCompleteOverlay(i, score){
+  const isLast = (i+1 >= STAGES.length);
+  const ov = document.createElement('div');
+  ov.className = 'stage-overlay';
+  ov.innerHTML = `
+    <div class="spacer"></div>
+    <div class="result-hero">
+      <div class="badge">STAGE ${i+1} CLEAR</div>
+      <div class="result-stars">${starsFor(score)}</div>
+      <div class="result-score">${score}<span style="font-size:20px;"> 점</span></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="btn-row">
+      <button class="btn ghost" id="ov-retry">다시 도전</button>
+      <button class="btn" id="ov-next" style="flex:1;">${isLast ? '최종 결과 확인하기 🏆' : '다음 공정으로 ▶'}</button>
+    </div>
+  `;
+  gameArea.appendChild(ov);
+  ov.querySelector('#ov-retry').addEventListener('click', ()=>{ ov.remove(); launchMinigame(i); });
+  ov.querySelector('#ov-next').addEventListener('click', ()=>{
+    if(isLast){
+      stopAmbience();
+      playFinalFanfare();
+      renderFinal();
+      showScreen('screen-final');
+    } else {
+      enterStage(i+1);
+    }
+  });
+}
+
+document.getElementById('btn-game-map').addEventListener('click', ()=>{
+  if(activeCleanup){ try{ activeCleanup(); }catch(e){} activeCleanup=null; }
+  stopAmbience();
+  renderMap(); showScreen('screen-map');
+});
+
+/* ============================================================
+   6. TITLE SCREEN HANDLERS
+   ============================================================ */
+document.getElementById('btn-start').addEventListener('click', ()=>{
+  ensureAudio();
+  state = freshState(); saveState();
+  enterStage(0);
+});
+document.getElementById('btn-continue').addEventListener('click', ()=>{
+  ensureAudio();
+  let next = state.scores.findIndex(s=>s===null);
+  if(next===-1) next = 0;
+  enterStage(next);
+});
+document.getElementById('btn-reset').addEventListener('click', ()=>{
+  showConfirm('모든 진행 상황을 초기화할까요?', ()=>{ state = freshState(); saveState(); });
+});
+document.getElementById('btn-map-home').addEventListener('click', ()=> showScreen('screen-title'));
+document.getElementById('btn-final-map').addEventListener('click', ()=>{ renderMap(); showScreen('screen-map'); });
+document.getElementById('btn-final-home').addEventListener('click', ()=> showScreen('screen-title'));
+
+/* ============================================================
+   7. FINAL CERTIFICATE (shown once, after stage 8 is cleared)
+   ============================================================ */
+function computeFinalYield(){
+  const scores = state.scores.map(s=>s===null?0:s);
+  const avg = scores.reduce((a,b)=>a+b,0)/scores.length;
+  return Math.max(1, Math.min(100, Math.round(avg)));
+}
+
+function renderFinal(){
+  const scores = state.scores;
+  const yieldPct = computeFinalYield();
+  let grade, remark;
+  if(yieldPct>=90){ grade='A'; remark='최우수! 완벽에 가까운 공정 관리예요 🏆'; }
+  else if(yieldPct>=78){ grade='B'; remark='우수한 품질! 안정적으로 양산할 수 있어요 👍'; }
+  else if(yieldPct>=63){ grade='C'; remark='무난한 수준이에요. 몇몇 공정을 더 다듬어보세요 🙂'; }
+  else if(yieldPct>=45){ grade='D'; remark='아쉬운 수율... 공정 곳곳에 오차가 있었어요 😅'; }
+  else { grade='F'; remark='재도전 필요! 공정 전체를 다시 점검해보세요 🔧'; }
+  document.getElementById('final-yield-num').innerHTML = `${yieldPct}<span style="font-size:26px;">%</span>`;
+  document.getElementById('final-grade').innerHTML = `${grade}등급 <span style="font-size:14px;color:var(--text-dim);font-weight:500;">— ${remark}</span>`;
+  document.getElementById('final-total').textContent = `최종 수율 ${yieldPct}% · 8/8 공정 완료`;
+  document.getElementById('final-list').innerHTML = STAGES.map((st,i)=>
+    `<div><b>${i+1}. ${st.name}</b> — ${scores[i]===null?'-':scores[i]+'점 '+starsFor(scores[i])}</div>`
+  ).join('');
+
+  const diags = state.diag;
+  const problems = scores
+    .map((s,i)=>({i, s: s===null?0:s, diag: diags[i]}))
+    .filter(x=>x.s<70)
+    .sort((a,b)=>a.s-b.s);
+  const reportEl = document.getElementById('final-report');
+  let reportHTML = `<div class="section-label" style="text-align:center;">🤖 AI 엔지니어 피드백 리포트</div>`;
+  if(problems.length===0){
+    reportHTML += `<div class="report-card good"><b>모든 공정이 안정적으로 관리되었습니다!</b><div style="color:var(--text-dim);font-size:14px;margin-top:4px;">8단계 모두 목표값에 가깝게 처리되어 결함 요인이 발견되지 않았습니다.</div></div>`;
+  } else {
+    problems.forEach(p=>{
+      reportHTML += `<div class="report-card bad"><b>${STAGES[p.i].name} (${p.s}점)</b><div style="color:var(--text-dim);font-size:14px;margin-top:4px;">${p.diag || '해당 공정의 설정값이 목표 대비 오차가 컸습니다.'}</div></div>`;
+    });
+  }
+  reportEl.innerHTML = reportHTML;
+
+  fireConfetti();
+}
+
+function fireConfetti(){
+  const layer = document.getElementById('confetti-layer');
+  layer.innerHTML = '';
+  const colors = ['#38bdf8','#2f6fed','#7dd3fc','#93c5fd','#f8fafc','#22c55e'];
+  for(let i=0;i<48;i++){
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.left = (Math.random()*100)+'%';
+    p.style.background = colors[i%colors.length];
+    p.style.animationDelay = (Math.random()*0.6)+'s';
+    p.style.animationDuration = (1.6+Math.random()*1.2)+'s';
+    p.style.setProperty('--drift', (Math.random()*80-40)+'px');
+    layer.appendChild(p);
+  }
+  setTimeout(()=>{ layer.innerHTML=''; }, 3200);
+}
+
+/* ============================================================
+   8. MINIGAME MODULES
+   Each module: function(container, onFinish, ctx) -> cleanupFn
+   ============================================================ */
+const STAGE_GAMES = {};
+
+/* ---------- STAGE 1 : wafer slicing (timing bar) ---------- */
+STAGE_GAMES.wafer = function(container, onFinish, ctx){
+  const ROUNDS = 5;
+  const LIFE_MS = 1500;
+  const MIN_SWIPE = 36;
+  let round=0, total=0, running=true, discEl=null, ringRaf=null, spawnTimeout=null, discR=52;
+  const wrap = document.createElement('div');
+  wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.flex='1';
+  wrap.innerHTML = `
+    <div style="text-align:center;padding-top:10px;font-size:16.5px;color:var(--text-dim);">웨이퍼 원판이 나타나면 <b style="color:var(--gold)">손가락으로 쓱 그어</b> 슬라이스하세요!</div>
+    <div class="slice-area" id="sl-area">
+      <svg class="slice-svg" id="sl-svg"></svg>
+    </div>
+    <div class="wafer-round-info" id="w-info">라운드 1 / ${ROUNDS}</div>
+    <div class="ingot-row" id="w-slices"></div>
+  `;
+  container.appendChild(wrap);
+  const area = wrap.querySelector('#sl-area');
+  const svg = wrap.querySelector('#sl-svg');
+  const infoEl = wrap.querySelector('#w-info');
+  const slicesEl = wrap.querySelector('#w-slices');
+
+  let swiping=false, sx=0, sy=0;
+
+  function spawnDisc(){
+    infoEl.textContent = `라운드 ${round+1} / ${ROUNDS}`;
+    discR = Math.max(36, 52 - round*3);
+    const r = area.getBoundingClientRect();
+    const x = discR+10 + Math.random()*(r.width-2*(discR+10));
+    const y = discR+10 + Math.random()*(r.height-2*(discR+10));
+    discEl = { x, y, born: performance.now(), sliced:false };
+    render();
+    ringRaf = requestAnimationFrame(ringTick);
+  }
+  function render(){
+    if(!discEl) { svg.innerHTML=''; return; }
+    const age = performance.now()-discEl.born;
+    const p = Math.max(0, 1-age/LIFE_MS);
+    svg.innerHTML = `
+      <circle cx="${discEl.x}" cy="${discEl.y}" r="${discR}" fill="#c7ddff" stroke="var(--line)" stroke-width="2"/>
+      <circle cx="${discEl.x}" cy="${discEl.y}" r="${discR-6}" fill="none" stroke="#5b9bf5" stroke-width="1.5" opacity=".6"/>
+      <circle cx="${discEl.x}" cy="${discEl.y}" r="${discR+6}" fill="none" stroke="var(--warn)" stroke-width="3"
+        stroke-dasharray="${2*Math.PI*(discR+6)}" stroke-dashoffset="${2*Math.PI*(discR+6)*(1-p)}"
+        transform="rotate(-90 ${discEl.x} ${discEl.y})"/>
+    `;
+  }
+  function ringTick(now){
+    if(!running || !discEl) return;
+    render();
+    const age = now-discEl.born;
+    if(age>=LIFE_MS && !discEl.sliced){
+      roundResult(0, 'miss');
+      return;
+    }
+    ringRaf = requestAnimationFrame(ringTick);
+  }
+
+  function distToSegment(px,py,ax,ay,bx,by){
+    const abx=bx-ax, aby=by-ay;
+    const t = Math.max(0, Math.min(1, ((px-ax)*abx+(py-ay)*aby)/(abx*abx+aby*aby||1)));
+    const cx=ax+abx*t, cy=ay+aby*t;
+    return Math.hypot(px-cx,py-cy);
+  }
+
+  function onDown(e){
+    if(!running) return;
+    const r = area.getBoundingClientRect();
+    swiping = true; sx = e.clientX-r.left; sy = e.clientY-r.top;
+  }
+  function onUp(e){
+    if(!swiping || !running) return;
+    swiping = false;
+    const r = area.getBoundingClientRect();
+    const ex = e.clientX-r.left, ey = e.clientY-r.top;
+    const len = Math.hypot(ex-sx, ey-sy);
+    if(len < MIN_SWIPE || !discEl || discEl.sliced) return;
+    const dist = distToSegment(discEl.x, discEl.y, sx, sy, ex, ey);
+    if(dist <= discR){
+      discEl.sliced = true;
+      const age = performance.now()-discEl.born;
+      const acc = Math.max(0, 1-dist/discR);
+      const timeFactor = Math.max(0, 1-age/LIFE_MS);
+      const scoreRound = Math.round(40 + acc*40 + timeFactor*20);
+      roundResult(scoreRound, 'hit', ex, ey);
+    }
+  }
+  area.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointerup', onUp);
+
+  function roundResult(scoreRound, kind, ex, ey){
+    if(ringRaf) cancelAnimationFrame(ringRaf);
+    total += scoreRound;
+    let cls = scoreRound>=70?'good':(scoreRound>=35?'mid':'bad');
+    if(kind==='miss') cls='bad';
+    const chip = document.createElement('div');
+    chip.className = 'ingot-slice pop '+cls;
+    chip.textContent = cls==='good'?'✓':(cls==='mid'?'△':'✕');
+    slicesEl.appendChild(chip);
+    area.classList.remove('flash-good','flash-bad');
+    void area.offsetWidth;
+    area.classList.add(cls==='good' ? 'flash-good' : 'flash-bad');
+    if(kind==='hit'){
+      svg.innerHTML += `<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" opacity=".9"/>`;
+    }
+    discEl = null;
+    round++;
+    if(round>=ROUNDS){
+      running=false;
+      const avg = total/ROUNDS;
+      ctx.setMsg('절단 완료!', 800);
+      const diag = avg>=78
+        ? `웨이퍼 제조: 정확한 타이밍과 각도로 슬라이스해 균일한 두께의 웨이퍼가 만들어졌습니다.`
+        : `웨이퍼 제조: 슬라이스 타이밍 또는 각도에 오차(0.1mm급)가 발생해 웨이퍼 두께가 불균일합니다.`;
+      setTimeout(()=> onFinish(avg, diag), 500);
+    } else {
+      spawnTimeout = setTimeout(spawnDisc, 500);
+    }
+  }
+  spawnDisc();
+
+  return function cleanup(){
+    running=false;
+    if(ringRaf) cancelAnimationFrame(ringRaf);
+    if(spawnTimeout) clearTimeout(spawnTimeout);
+    window.removeEventListener('pointerup', onUp);
+  };
+};
+
+/* ---------- STAGE 2 : oxidation temperature control ---------- */
+STAGE_GAMES.oxidation = function(container, onFinish, ctx){
+  const MIN=0, MAX=180, TARGET=100;
+  const RISE_MS = 4800 + Math.random()*2200;
+  let stopped=false, raf=null, running=true, t0=performance.now();
+  const wrap = document.createElement('div');
+  wrap.className='gauge-wrap';
+  wrap.innerHTML = `
+    <div class="center" style="margin:6px 0 4px;">
+      <svg viewBox="0 0 140 100" style="width:150px;">
+        <g id="o-bubbles"></g>
+        <circle cx="70" cy="60" r="0" fill="none" id="o-halo" stroke="var(--warn)" stroke-width="4" opacity=".7"/>
+        <circle cx="70" cy="60" r="26" fill="#c7ddff" stroke="var(--line)" stroke-width="2" id="o-wafer"/>
+      </svg>
+    </div>
+    <div class="thermo-wrap">
+      <svg class="thermo-svg" viewBox="0 0 220 100">
+        <rect x="10" y="42" width="200" height="18" rx="9" fill="#ffe3ef" stroke="var(--line)" stroke-width="2"/>
+        <rect id="o-fillbar" x="10" y="42" width="0" height="18" rx="9" fill="var(--warn)"/>
+        <line x1="120" y1="32" x2="120" y2="70" stroke="var(--good)" stroke-width="3" stroke-dasharray="3 3"/>
+      </svg>
+      <div class="gauge-labels"><span>${MIN}nm</span><span style="color:var(--good);font-weight:700;">목표 ${TARGET}nm</span><span>${MAX}nm</span></div>
+    </div>
+    <div style="text-align:center;margin-top:8px;font-size:30px;font-weight:900;">🧪 <span id="o-actual" style="color:var(--accent)">${MIN}</span>nm</div>
+    <div class="center" style="margin-top:18px;">
+      <button class="btn warn" id="o-stop">🚫 가스 차단!</button>
+    </div>
+  `;
+  container.appendChild(wrap);
+  const actualEl = wrap.querySelector('#o-actual');
+  const fillBar = wrap.querySelector('#o-fillbar');
+  const stopBtn = wrap.querySelector('#o-stop');
+  const haloEl = wrap.querySelector('#o-halo');
+  const waferEl = wrap.querySelector('#o-wafer');
+  const bubblesEl = wrap.querySelector('#o-bubbles');
+
+  for(let i=0;i<6;i++){
+    const b = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    b.setAttribute('r', 2+Math.random()*2);
+    b.setAttribute('fill', '#93c5fd');
+    b.setAttribute('opacity', '.7');
+    const x = 40+Math.random()*60;
+    b.setAttribute('cx', x);
+    b.setAttribute('cy', 95);
+    bubblesEl.appendChild(b);
+    b.animate([
+      {transform:'translateY(0px)', opacity:.7},
+      {transform:'translateY(-70px)', opacity:0}
+    ], {duration:1400+Math.random()*800, iterations:Infinity, delay:Math.random()*1000});
+  }
+
+  function valueAt(p){ return MIN + (MAX-MIN)*p; }
+
+  function tick(now){
+    if(!running || stopped) return;
+    const p = Math.min(1, (now-t0)/RISE_MS);
+    const v = valueAt(p);
+    actualEl.textContent = Math.round(v);
+    fillBar.setAttribute('width', (200*p).toFixed(1));
+    haloEl.setAttribute('r', (26+p*16).toFixed(1));
+    if(p>0.92){
+      const burn = Math.min(1, (p-0.92)/0.08);
+      waferEl.setAttribute('fill', `rgb(${Math.round(199-burn*160)},${Math.round(221-burn*190)},${Math.round(255-burn*220)})`);
+    }
+    if(p>=1){ doStop(true); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  raf = requestAnimationFrame(tick);
+
+  function doStop(timedOut){
+    if(stopped || !running) return;
+    stopped = true;
+    running = false;
+    if(raf) cancelAnimationFrame(raf);
+    const v = parseFloat(actualEl.textContent);
+    const diff = Math.round(v-TARGET);
+    const absDiff = Math.abs(diff);
+    const burnt = timedOut;
+    const score = burnt ? Math.max(0, 20 - Math.round(absDiff*0.1)) : Math.max(0, Math.round(100 - absDiff*0.9));
+    let diag;
+    if(burnt){
+      ctx.setMsg('가스 차단이 너무 늦었어요! 웨이퍼가 타버렸습니다 🔥', 900);
+      diag = `산화 공정: 가스 차단 타이밍을 놓쳐 과열되었고 웨이퍼 표면이 손상되었습니다.`;
+    } else if(absDiff<=8){
+      ctx.setMsg('완벽한 두께! 균일한 산화막이 형성되었습니다.', 900);
+      diag = `산화 공정: 목표 100nm 대비 ${diff>=0?'+':''}${diff}nm로 정밀하게 맞춰 산화막이 균일하게 형성되었습니다.`;
+    } else {
+      ctx.setMsg(diff>0 ? '차단이 조금 늦었어요!' : '차단이 조금 일렀어요!', 900);
+      diag = `산화 공정: 목표 100nm 대비 ${diff>=0?'+':''}${diff}nm 오차 발생 → 산화막이 ${diff>0?'과도하게 두껍게':'너무 얇게'} 형성되어 이후 정밀 공정에 영향을 줄 수 있습니다.`;
+    }
+    setTimeout(()=> onFinish(score, diag), 700);
+  }
+  stopBtn.addEventListener('click', ()=>doStop(false));
+
+  return function cleanup(){ running=false; if(raf) cancelAnimationFrame(raf); };
+};
+
+/* ---------- STAGE 3 : mask alignment ---------- */
+STAGE_GAMES.photo = function(container, onFinish, ctx){
+  const TIME_LIMIT = 14;
+  const SHAPE = 'M-18,-18 L8,-18 L18,-8 L18,18 L-18,18 Z'; // chamfered square (asymmetric, so rotation matters)
+  const tx = 60+Math.random()*80, ty = 50+Math.random()*60;
+  const tAngle = (Math.random()*100-50);
+  let mx = tx + (Math.random()<0.5?-1:1)*(55+Math.random()*25);
+  mx = Math.max(30, Math.min(170, mx));
+  let my = ty + (Math.random()<0.5?-1:1)*(35+Math.random()*20);
+  my = Math.max(25, Math.min(135, my));
+  let mAngle = tAngle + (Math.random()<0.5?-1:1)*(60+Math.random()*60);
+  let running=true, fired=false, raf=null, t0=performance.now(), dragging=false, offX=0, offY=0;
+
+  const wrap = document.createElement('div');
+  wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.flex='1';
+  wrap.innerHTML = `
+    <div style="text-align:center;padding:8px 16px 0;font-size:16.5px;color:var(--text-dim);">점선 마스크 위치·각도에 맞춰 파란 마스크를 <b style="color:var(--gold)">드래그하고 회전</b>시킨 뒤 노광하세요!</div>
+    <div class="uv-stage" id="ph-stage">
+      <svg class="uv-svg" id="ph-svg" viewBox="0 0 200 160">
+        <rect x="14" y="14" width="172" height="132" rx="8" fill="#f3f7ff" stroke="var(--line)" stroke-width="2"/>
+        <g transform="translate(${tx},${ty}) rotate(${tAngle})">
+          <path d="${SHAPE}" fill="none" stroke="var(--accent2)" stroke-width="2.5" stroke-dasharray="4 3" opacity=".8"/>
+        </g>
+        <g id="ph-mask" style="cursor:grab;touch-action:none;">
+          <path d="${SHAPE}" fill="rgba(47,111,237,.4)" stroke="var(--accent)" stroke-width="3"/>
+        </g>
+      </svg>
+    </div>
+    <input type="range" id="ph-slider" min="-180" max="180" value="0" step="1" style="width:80%;margin:8px auto;display:block;accent-color:var(--accent);">
+    <div class="center" id="ph-state" style="font-size:14.5px;font-weight:700;color:var(--text-dim);min-height:18px;">위치와 각도를 맞춰보세요</div>
+    <div class="center" style="padding:6px 0 14px;">
+      <button class="btn" id="ph-fire">💡 노광!</button>
+    </div>
+  `;
+  container.appendChild(wrap);
+  const svgEl = wrap.querySelector('#ph-svg');
+  const maskEl = wrap.querySelector('#ph-mask');
+  const slider = wrap.querySelector('#ph-slider');
+  const stateEl = wrap.querySelector('#ph-state');
+  const fireBtn = wrap.querySelector('#ph-fire');
+
+  slider.value = String(Math.round(((mAngle+180)%360+360)%360-180));
+
+  function render(){
+    maskEl.setAttribute('transform', `translate(${mx},${my}) rotate(${mAngle})`);
+  }
+  function toSvgPoint(clientX, clientY){
+    const pt = svgEl.createSVGPoint();
+    pt.x = clientX; pt.y = clientY;
+    return pt.matrixTransform(svgEl.getScreenCTM().inverse());
+  }
+  function onDown(e){
+    if(fired || !running) return;
+    dragging = true;
+    const p = toSvgPoint(e.clientX, e.clientY);
+    offX = p.x-mx; offY = p.y-my;
+    maskEl.style.cursor='grabbing';
+  }
+  function onMove(e){
+    if(!dragging) return;
+    const p = toSvgPoint(e.clientX, e.clientY);
+    mx = Math.max(20, Math.min(180, p.x-offX));
+    my = Math.max(18, Math.min(142, p.y-offY));
+    render();
+  }
+  function onUp(){ dragging=false; maskEl.style.cursor='grab'; }
+  maskEl.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  slider.addEventListener('input', ()=>{ mAngle = parseFloat(slider.value); render(); });
+  render();
+
+  function tick(now){
+    if(!running || fired) return;
+    const elapsed = (now-t0)/1000;
+    ctx.setTimer(TIME_LIMIT-elapsed, TIME_LIMIT);
+    if(elapsed>=TIME_LIMIT){ doFire(true); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  raf = requestAnimationFrame(tick);
+
+  function angleDiff(a,b){
+    let d = Math.abs(a-b)%360;
+    return d>180 ? 360-d : d;
+  }
+  function doFire(timedOut){
+    if(fired || !running) return;
+    fired = true; running = false;
+    if(raf) cancelAnimationFrame(raf);
+    const dist = Math.hypot(mx-tx, my-ty);
+    const posAcc = Math.max(0, 1-dist/70);
+    const adiff = angleDiff(mAngle, tAngle);
+    const angleAcc = Math.max(0, 1-adiff/70);
+    const combined = timedOut ? 0 : (posAcc*0.5 + angleAcc*0.5);
+    const score = Math.max(3, Math.round(combined*100));
+    if(score>=70){
+      stateEl.textContent = '✨ 정확히 정렬! 회로 패턴이 선명하게 새겨졌습니다.';
+      ctx.setMsg('정확히 정렬! 회로 패턴이 선명하게 새겨졌습니다.', 900);
+    } else {
+      stateEl.textContent = timedOut ? '⏱️ 시간 초과!' : '❌ 정렬이 어긋났어요...';
+      ctx.setMsg(timedOut ? '시간 초과! 정렬이 완료되지 않았어요.' : '정렬이 어긋나 패턴이 틀어졌어요.', 900);
+    }
+    const diag = score>=70
+      ? `포토 공정: 마스크 위치와 각도를 정밀하게 정렬해 회로 패턴이 선명하게 새겨졌습니다.`
+      : `포토 공정: 마스크 정렬 오차(위치 ${Math.round(dist)}px, 각도 ${Math.round(adiff)}°)로 회로 패턴이 틀어졌습니다.`;
+    setTimeout(()=> onFinish(score, diag), 700);
+  }
+  fireBtn.addEventListener('click', ()=>doFire(false));
+
+  return function cleanup(){
+    running=false;
+    if(raf) cancelAnimationFrame(raf);
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+  };
+};
+
+/* ---------- shared: engineering-choice minigame (used by etch & iondep) ---------- */
+function renderExperimentMinigame(container, onFinish, ctx, cfg){
+  let running=true, resolved=false, attempts=0, busy=false;
+  const order = cfg.choices.map((c,i)=>i);
+  for(let i=order.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [order[i],order[j]]=[order[j],order[i]]; }
+
+  const wrap = document.createElement('div');
+  wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.flex='1';
+  wrap.innerHTML = `
+    <div class="exp-scene" id="exp-scene"></div>
+    <div class="exp-status" id="exp-status">${cfg.prompt}</div>
+    <div class="choice-grid exp-choice-grid" id="c-grid"></div>
+  `;
+  container.appendChild(wrap);
+  const sceneEl = wrap.querySelector('#exp-scene');
+  const statusEl = wrap.querySelector('#exp-status');
+  const grid = wrap.querySelector('#c-grid');
+
+  cfg.buildScene(sceneEl);
+
+  const cards = [];
+  order.forEach(idx=>{
+    const c = cfg.choices[idx];
+    const card = document.createElement('div');
+    card.className = 'choice-card exp-card';
+    card.innerHTML = `<div class="choice-icon">${c.icon}</div><div class="choice-label">${c.label}</div>`;
+    card.addEventListener('click', ()=>{
+      if(busy || resolved || !running) return;
+      busy = true;
+      card.classList.add('sel');
+      const isCorrect = !!c.correct;
+      statusEl.textContent = isCorrect ? cfg.successMsg : cfg.failMsg;
+      cfg.playReaction(sceneEl, isCorrect, ()=>{
+        busy = false;
+        if(isCorrect){
+          resolved = true; running = false;
+          const score = Math.max(20, 100 - attempts*35);
+          const diag = `${cfg.stageName}: "${c.label}"을(를) 선택해 공정 원리에 맞게 처리되었습니다.`;
+          setTimeout(()=> onFinish(score, diag), 700);
+        } else {
+          attempts++;
+          card.classList.remove('sel');
+          card.classList.add('tried');
+          statusEl.textContent = cfg.prompt;
+          if(attempts>=3){
+            resolved = true; running = false;
+            const score = 15;
+            ctx.setMsg('반응이 계속 실패했어요...', 900);
+            const diag = `${cfg.stageName}: 여러 차례 잘못된 방식을 시도하여 ${cfg.wrongConsequence}`;
+            setTimeout(()=> onFinish(score, diag), 700);
+          }
+        }
+      });
+    });
+    grid.appendChild(card);
+    cards.push(card);
+  });
+
+  return function cleanup(){ running=false; };
+}
+
+/* ---------- STAGE 4 : etch — plasma gas choice ---------- */
+STAGE_GAMES.etch = function(container, onFinish, ctx){
+  const N=8, TIME_LIMIT=13;
+  const midR = 3, midC = 4;
+  let running=true, elapsed=0, raf=null, removed=0, total=0, dragging=false, failed=false;
+  const wrap = document.createElement('div');
+  wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.flex='1';
+  wrap.innerHTML = `<div style="text-align:center;padding:10px 16px 0;font-size:16.5px;color:var(--text-dim);">회로선(<span style="color:var(--warn);font-weight:700;">■</span>)을 피해 나머지 칸을 손가락으로 문질러 깎아내세요! 회로를 건드리면 즉시 불량!</div>
+  <div class="etch2-grid" id="e2-grid" style="grid-template-columns:repeat(${N},1fr);"></div>`;
+  container.appendChild(wrap);
+  const grid = wrap.querySelector('#e2-grid');
+
+  const cells = [];
+  for(let r=0;r<N;r++){
+    for(let c=0;c<N;c++){
+      const isProtect = (r===midR || c===midC);
+      if(!isProtect) total++;
+      const cell = document.createElement('div');
+      cell.className = 'etch2-cell ' + (isProtect?'protect':'remove');
+      cell.dataset.protect = isProtect?'1':'0';
+      grid.appendChild(cell);
+      cells.push(cell);
+    }
+  }
+
+  function processCell(el){
+    if(!running || failed) return;
+    if(!el || !el.classList || !el.classList.contains('etch2-cell')) return;
+    if(el.dataset.protect==='1'){
+      fail(el);
+      return;
+    }
+    if(!el.dataset.done){
+      el.dataset.done='1';
+      el.style.transition='transform .18s ease, opacity .18s ease';
+      el.style.transform='scale(0)';
+      el.style.opacity='0';
+      removed++;
+      if(removed>=total) succeed();
+    }
+  }
+  function fail(el){
+    failed = true; running = false;
+    if(raf) cancelAnimationFrame(raf);
+    el.classList.add('etch2-fail');
+    grid.classList.add('etch2-shake');
+    ctx.setMsg('회로를 건드렸어요! 대형 불량 발생 💥', 900);
+    const diag = `식각 공정: 부식 가스가 회로선을 침범해 대형 결함이 발생했습니다.`;
+    setTimeout(()=> onFinish(8, diag), 700);
+  }
+  function succeed(){
+    if(!running) return;
+    running = false;
+    if(raf) cancelAnimationFrame(raf);
+    const timeBonus = Math.max(0, (TIME_LIMIT-elapsed)/TIME_LIMIT);
+    const score = Math.max(70, Math.round(75 + timeBonus*25));
+    ctx.setMsg('완벽하게 식각 완료! 회로가 깨끗하게 남았습니다.', 900);
+    const diag = `식각 공정: 회로선을 건드리지 않고 정밀하게 식각을 완료했습니다.`;
+    setTimeout(()=> onFinish(score, diag), 600);
+  }
+
+  function pointFromEvent(e){
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    processCell(el);
+  }
+  function onDown(e){ dragging=true; pointFromEvent(e); }
+  function onMove(e){ if(dragging) pointFromEvent(e); }
+  function onUp(){ dragging=false; }
+  grid.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+
+  let last = performance.now();
+  function tick(now){
+    if(!running) return;
+    elapsed += (now-last)/1000; last=now;
+    ctx.setTimer(TIME_LIMIT-elapsed, TIME_LIMIT);
+    if(elapsed>=TIME_LIMIT){
+      running=false;
+      const acc = total?removed/total:0;
+      const score = Math.max(15, Math.round(acc*65));
+      ctx.setMsg('시간 종료...', 700);
+      const diag = `식각 공정: 시간 내에 식각을 다 마치지 못해 일부 불필요한 부분이 남았습니다.`;
+      setTimeout(()=> onFinish(score, diag), 500);
+      return;
+    }
+    raf = requestAnimationFrame(tick);
+  }
+  raf = requestAnimationFrame(tick);
+
+  return function cleanup(){
+    running=false; if(raf) cancelAnimationFrame(raf);
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+  };
+};
+
+/* ---------- STAGE 5 : deposition / doping choice ---------- */
+STAGE_GAMES.iondep = function(container, onFinish, ctx){
+  const ROUNDS = 8;
+  const LIFE0 = 950, LIFE_MIN = 520;
+  let running=true, round=0, total=0, raf=null, spawnTimeout=null, slot=null, streak=0;
+
+  const wrap = document.createElement('div');
+  wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.flex='1';
+  wrap.innerHTML = `
+    <div style="text-align:center;padding:8px 16px 0;font-size:16.5px;color:var(--text-dim);">격자 슬롯이 반짝이면 <b style="color:var(--gold)">사라지기 전에</b> 재빨리 탭해서 이온을 저격하세요!</div>
+    <div class="ionz-area" id="ionz-area">
+      <svg class="ionz-svg" id="ionz-svg" viewBox="0 0 200 140">
+        <rect x="14" y="14" width="172" height="112" rx="8" fill="#dbeafe" stroke="var(--line)" stroke-width="2"/>
+        <g id="ionz-grid" stroke="#93c5fd" stroke-width="1" opacity=".5"></g>
+      </svg>
+    </div>
+    <div class="center" id="ionz-hud" style="font-size:14.5px;font-weight:700;color:var(--text-dim);padding:6px 0;">라운드 1 / ${ROUNDS}</div>
+  `;
+  container.appendChild(wrap);
+  const area = wrap.querySelector('#ionz-area');
+  const svg = wrap.querySelector('#ionz-svg');
+  const gridG = wrap.querySelector('#ionz-grid');
+  const hud = wrap.querySelector('#ionz-hud');
+
+  for(let gx=14;gx<=186;gx+=24){ gridG.innerHTML += `<line x1="${gx}" y1="14" x2="${gx}" y2="126"/>`; }
+  for(let gy=14;gy<=126;gy+=24){ gridG.innerHTML += `<line x1="14" y1="${gy}" x2="186" y2="${gy}"/>`; }
+
+  function burst(x,y,color){
+    for(let i=0;i<10;i++){
+      const ang = (i/10)*Math.PI*2;
+      const p = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      p.setAttribute('cx',x); p.setAttribute('cy',y); p.setAttribute('r','3'); p.setAttribute('fill',color);
+      svg.appendChild(p);
+      const dx = Math.cos(ang)*26, dy = Math.sin(ang)*26;
+      p.animate([
+        {transform:'translate(0,0)', opacity:1},
+        {transform:`translate(${dx}px,${dy}px)`, opacity:0}
+      ], {duration:380, easing:'ease-out'});
+      setTimeout(()=> p.remove(), 400);
+    }
+    area.classList.remove('ionz-flash'); void area.offsetWidth; area.classList.add('ionz-flash');
+  }
+
+  function spawnSlot(){
+    hud.textContent = `라운드 ${round+1} / ${ROUNDS}`;
+    const life = Math.max(LIFE_MIN, LIFE0 - round*55);
+    const x = 34 + Math.random()*132;
+    const y = 34 + Math.random()*72;
+    slot = { x, y, born: performance.now(), life, resolved:false };
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('id','ionz-slot');
+    g.innerHTML = `
+      <circle cx="${x}" cy="${y}" r="14" fill="rgba(56,189,248,.25)" stroke="var(--accent2)" stroke-width="2"/>
+      <circle id="ionz-ring" cx="${x}" cy="${y}" r="18" fill="none" stroke="var(--warn)" stroke-width="3"/>
+    `;
+    svg.appendChild(g);
+    g.addEventListener('pointerdown', onHit);
+    slot.el = g;
+    raf = requestAnimationFrame(ringTick);
+  }
+  function ringTick(now){
+    if(!running || !slot || slot.resolved) return;
+    const age = now-slot.born;
+    const p = Math.max(0,1-age/slot.life);
+    const ring = slot.el.querySelector('#ionz-ring');
+    if(ring){
+      const C = 2*Math.PI*18;
+      ring.setAttribute('stroke-dasharray', C);
+      ring.setAttribute('stroke-dashoffset', C*(1-p));
+    }
+    if(age>=slot.life){ resolveSlot(0,'miss'); return; }
+    raf = requestAnimationFrame(ringTick);
+  }
+  function onHit(){
+    if(!slot || slot.resolved || !running) return;
+    const age = performance.now()-slot.born;
+    const timeFactor = Math.max(0, 1-age/slot.life);
+    const scoreRound = Math.round(55 + timeFactor*45);
+    resolveSlot(scoreRound, 'hit');
+  }
+  function resolveSlot(scoreRound, kind){
+    if(!slot || slot.resolved) return;
+    slot.resolved = true;
+    if(raf) cancelAnimationFrame(raf);
+    total += scoreRound;
+    if(kind==='hit'){
+      streak++;
+      burst(slot.x, slot.y, streak>=3?'var(--gold)':'var(--accent)');
+      playSuccessChime(4);
+    } else {
+      streak = 0;
+      const ring = slot.el.querySelector('#ionz-ring');
+      slot.el.querySelector('circle').setAttribute('fill','rgba(240,69,95,.35)');
+      area.classList.remove('ionz-shake'); void area.offsetWidth; area.classList.add('ionz-shake');
+    }
+    setTimeout(()=>{ if(slot && slot.el) slot.el.remove(); }, 200);
+    round++;
+    if(round>=ROUNDS){
+      running=false;
+      const avg = total/ROUNDS;
+      ctx.setMsg('이온주입 완료!', 800);
+      const diag = avg>=78
+        ? `박막증착 & 이온주입 공정: 격자 슬롯마다 정확하고 신속하게 이온을 주입해 균일한 도핑을 완성했습니다.`
+        : `박막증착 & 이온주입 공정: 일부 슬롯에 이온을 제때 주입하지 못해 도핑 균일도가 떨어졌습니다.`;
+      setTimeout(()=> onFinish(avg, diag), 500);
+    } else {
+      spawnTimeout = setTimeout(spawnSlot, 380);
+    }
+  }
+  spawnSlot();
+
+  return function cleanup(){
+    running=false;
+    if(raf) cancelAnimationFrame(raf);
+    if(spawnTimeout) clearTimeout(spawnTimeout);
+  };
+};
+
+/* ---------- STAGE 6 : wiring connect ---------- */
+STAGE_GAMES.metal = function(container, onFinish, ctx){
+  const N_HULL = 6, N = N_HULL+2; // 6 rim nodes + 2 inner nodes
+  let running=true, startT=performance.now(), dragging=false, failed=false, doneFlag=false;
+  const wrap = document.createElement('div');
+  wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.flex='1';
+  wrap.innerHTML = `<div style="text-align:center;padding:10px 16px 0;font-size:16.5px;color:var(--text-dim);">펜을 떼지 말고 <b style="color:var(--gold)">가운데 노드 2개까지 포함</b>해 모든 전극을 한붓그리기로 이으세요. 선이 겹치면 쇼트!</div>
+  <div class="oneline-area" id="ml-area"><svg class="wire-svg" id="ml-svg"></svg></div>`;
+  container.appendChild(wrap);
+  const area = wrap.querySelector('#ml-area');
+  const svg = wrap.querySelector('#ml-svg');
+
+  let nodes = [];
+  const segments = [];
+  let path = []; // indices of nodes visited in order
+
+  function ccw(A,B,C){ return (C.y-A.y)*(B.x-A.x) > (B.y-A.y)*(C.x-A.x); }
+  function segIntersect(A,B,C,D){
+    return ccw(A,C,D)!==ccw(B,C,D) && ccw(A,B,C)!==ccw(A,B,D);
+  }
+  function checkOrder(order){
+    const segs = [];
+    for(let i=0;i<order.length-1;i++) segs.push({a:order[i], b:order[i+1]});
+    for(let i=0;i<segs.length;i++){
+      for(let j=i+1;j<segs.length;j++){
+        if(j===i+1) continue;
+        if(segIntersect(segs[i].a,segs[i].b,segs[j].a,segs[j].b)) return false;
+      }
+    }
+    return true;
+  }
+
+  function layout(){
+    const r = area.getBoundingClientRect();
+    const cx = r.width/2, cy = r.height/2;
+    const radius = Math.min(r.width,r.height)/2 - 26;
+    let candidate = null;
+    for(let attempt=0; attempt<60; attempt++){
+      const base = Math.random()*360;
+      const hull = [];
+      for(let i=0;i<N_HULL;i++){
+        const jitter = (Math.random()-0.5)*22;
+        const ang = (base + i*(360/N_HULL) + jitter) * Math.PI/180;
+        hull.push({x: cx+radius*Math.cos(ang), y: cy+radius*Math.sin(ang)});
+      }
+      const inner1 = { x: cx+(Math.random()-0.5)*radius*0.5, y: cy+(Math.random()-0.5)*radius*0.5 };
+      const inner2 = { x: cx+(Math.random()-0.5)*radius*0.5, y: cy+(Math.random()-0.5)*radius*0.5 };
+      let found = false;
+      for(let a=0;a<N_HULL && !found;a++){
+        for(let b=0;b<N_HULL && !found;b++){
+          const order1 = [...hull.slice(0,a+1), inner1, ...hull.slice(a+1)];
+          const idx2 = order1.indexOf(hull[b]);
+          const order2 = [...order1.slice(0,idx2+1), inner2, ...order1.slice(idx2+1)];
+          if(checkOrder(order2)) found = true;
+        }
+      }
+      if(found){ candidate = { hull, inner1, inner2 }; break; }
+    }
+    if(!candidate){
+      // fallback: dead-center points are virtually always safe
+      const base = Math.random()*360;
+      const hull = [];
+      for(let i=0;i<N_HULL;i++){
+        const ang = (base + i*(360/N_HULL)) * Math.PI/180;
+        hull.push({x: cx+radius*Math.cos(ang), y: cy+radius*Math.sin(ang)});
+      }
+      candidate = { hull, inner1:{x:cx-10,y:cy}, inner2:{x:cx+10,y:cy} };
+    }
+    nodes = [...candidate.hull, candidate.inner1, candidate.inner2];
+    nodes.forEach((n,i)=>{
+      const el = document.createElement('div');
+      el.className='oneline-node' + (i>=nodes.length-2 ? ' oneline-inner' : '');
+      el.style.left=n.x+'px'; el.style.top=n.y+'px';
+      el.dataset.idx=i;
+      area.appendChild(el);
+      n.el = el;
+    });
+  }
+  requestAnimationFrame(layout);
+  function crosses(newSeg){
+    for(let i=0;i<segments.length-0;i++){
+      const s = segments[i];
+      if(i===segments.length-1) continue; // adjacent segment shares endpoint, skip
+      if(segIntersect(newSeg.a, newSeg.b, s.a, s.b)) return true;
+    }
+    return false;
+  }
+
+  function nodeAt(clientX, clientY, includeVisited){
+    const r = area.getBoundingClientRect();
+    const x = clientX-r.left, y = clientY-r.top;
+    for(let i=0;i<nodes.length;i++){
+      if(!includeVisited && path.includes(i)) continue;
+      if(Math.hypot(x-nodes[i].x, y-nodes[i].y) <= 12) return i;
+    }
+    return -1;
+  }
+
+  function drawSeg(a,b,color){
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',a.x); line.setAttribute('y1',a.y);
+    line.setAttribute('x2',b.x); line.setAttribute('y2',b.y);
+    line.setAttribute('stroke', color||'var(--accent2)');
+    line.setAttribute('stroke-width','4');
+    line.setAttribute('stroke-linecap','round');
+    svg.appendChild(line);
+    return line;
+  }
+
+  const previewLine = document.createElementNS('http://www.w3.org/2000/svg','line');
+  previewLine.setAttribute('stroke','var(--accent2)');
+  previewLine.setAttribute('stroke-width','4');
+  previewLine.setAttribute('stroke-linecap','round');
+  previewLine.setAttribute('opacity','.55');
+  previewLine.style.display='none';
+  svg.appendChild(previewLine);
+
+  function onDown(e){
+    if(!running || failed || doneFlag) return;
+    if(path.length===0){
+      const idx = nodeAt(e.clientX, e.clientY, false);
+      if(idx===-1) return;
+      dragging = true;
+      path = [idx];
+      nodes[idx].el.classList.add('visited');
+    } else {
+      // resume: must re-grab the last visited node to continue the same stroke
+      const idx = nodeAt(e.clientX, e.clientY, true);
+      if(idx !== path[path.length-1]) return;
+      dragging = true;
+    }
+    const last = nodes[path[path.length-1]];
+    previewLine.setAttribute('x1', last.x); previewLine.setAttribute('y1', last.y);
+    previewLine.setAttribute('x2', last.x); previewLine.setAttribute('y2', last.y);
+    previewLine.style.display='block';
+  }
+  function onMove(e){
+    if(!dragging || !running) return;
+    const last = nodes[path[path.length-1]];
+    const idx = nodeAt(e.clientX, e.clientY, false);
+    if(idx!==-1){
+      // snap the stretching line exactly onto the nearby node
+      const snapTarget = nodes[idx];
+      previewLine.setAttribute('x2', snapTarget.x);
+      previewLine.setAttribute('y2', snapTarget.y);
+    } else {
+      const r = area.getBoundingClientRect();
+      previewLine.setAttribute('x2', e.clientX-r.left);
+      previewLine.setAttribute('y2', e.clientY-r.top);
+    }
+    if(idx===-1 || path.includes(idx)) return;
+    const cur = nodes[idx];
+    const newSeg = {a:last, b:cur};
+    if(crosses(newSeg)){
+      failLine(last, cur);
+      return;
+    }
+    drawSeg(last, cur);
+    segments.push(newSeg);
+    path.push(idx);
+    cur.el.classList.add('visited');
+    previewLine.setAttribute('x1', cur.x); previewLine.setAttribute('y1', cur.y);
+    previewLine.setAttribute('x2', cur.x); previewLine.setAttribute('y2', cur.y);
+    if(path.length>=N) finish(true);
+  }
+  function onUp(){
+    dragging = false;
+    previewLine.style.display='none';
+  }
+  area.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+
+  function failLine(a,b){
+    failed = true; running = false; dragging=false;
+    const badLine = drawSeg(a,b,'var(--bad)');
+    badLine.classList.add('oneline-fail');
+    area.classList.add('etch2-shake');
+    ctx.setMsg('선이 서로 겹쳤어요! 쇼트(단락) 발생 ⚡', 900);
+    const diag = `금속 배선 공정: 배선이 서로 겹쳐 쇼트가 발생해 전력 손실이 생겼습니다.`;
+    setTimeout(()=> onFinish(10, diag), 700);
+  }
+
+  function finish(allDone){
+    if(doneFlag || failed) return;
+    doneFlag = true; running = false; dragging=false;
+    const secs = (performance.now()-startT)/1000;
+    let score;
+    if(allDone){
+      score = Math.max(75, Math.round(100 - Math.max(0,secs-10)*1.2));
+      ctx.setMsg('한붓그리기 성공! 배선이 완벽하게 연결됐습니다.', 900);
+    } else {
+      score = Math.max(15, Math.round((path.length/N)*60));
+      ctx.setMsg('연결이 끊겼어요...', 900);
+    }
+    const diag = allDone
+      ? `금속 배선 공정: 선이 겹치지 않게 한붓그리기로 완벽히 연결되어 전류가 설계대로 흐릅니다.`
+      : `금속 배선 공정: 배선을 끝까지 잇지 못해 일부 회로가 연결되지 않았습니다.`;
+    setTimeout(()=> onFinish(score, diag), 500);
+  }
+
+  const TIME_LIMIT = 16;
+  let tickRaf = null;
+  function tick(now){
+    if(!running) return;
+    const secs = (now-startT)/1000;
+    ctx.setTimer(TIME_LIMIT-secs, TIME_LIMIT);
+    if(secs>=TIME_LIMIT){ finish(false); return; }
+    tickRaf = requestAnimationFrame(tick);
+  }
+  tickRaf = requestAnimationFrame(tick);
+
+  return function cleanup(){
+    running=false;
+    if(tickRaf) cancelAnimationFrame(tickRaf);
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+  };
+};
+
+/* ---------- STAGE 7 : defect spotting (EDS) ---------- */
+STAGE_GAMES.eds = function(container, onFinish, ctx){
+  const TOTAL = 12, BELT_MS = 2100, SPAWN_MS = 620;
+  let running=true, raf=null, spawned=0, resolved=0;
+  let correctRejects=0, wrongRejects=0, missedDefects=0;
+  let lastSpawn = -Infinity;
+  const active = [];
+
+  const wrap = document.createElement('div');
+  wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.flex='1';
+  wrap.innerHTML = `
+    <div style="text-align:center;padding:8px 16px 0;font-size:16.5px;color:var(--text-dim);">지나가는 칩을 보고 <b style="color:var(--bad)">불량(빨강)</b>만 재빨리 탭해서 쳐내세요! 정상(파랑)은 그냥 두세요.</div>
+    <div class="belt-wrap" id="eds-belt">
+      <div class="belt-zone" id="eds-zone"></div>
+    </div>
+    <div class="center" id="eds-hud" style="font-size:14.5px;font-weight:700;color:var(--text-dim);padding:6px 0;">0 / ${TOTAL}</div>
+  `;
+  container.appendChild(wrap);
+  const belt = wrap.querySelector('#eds-belt');
+  const hud = wrap.querySelector('#eds-hud');
+
+  function rejectChip(chip, el){
+    if(chip.resolved || !running) return;
+    chip.resolved = true;
+    resolved++;
+    if(chip.defective){
+      correctRejects++;
+      el.classList.add('eds-reject-good');
+      playSuccessChime(6);
+    } else {
+      wrongRejects++;
+      el.classList.add('eds-reject-bad');
+    }
+    setTimeout(()=>{ el.remove(); }, 220);
+    checkDone();
+  }
+  // Pure coordinate math, independent of DOM hit-testing/CSS/z-index entirely:
+  // find whichever active chip's current center is closest to the tap point,
+  // within a generous radius. This sidesteps any touch-action/stacking/target
+  // issues that per-element or delegated DOM listeners could run into.
+  function onBeltPointer(e){
+    const pt = (e.changedTouches && e.changedTouches[0]) || e;
+    const clientX = pt.clientX, clientY = pt.clientY;
+    if(clientX==null || clientY==null) return;
+    const r = belt.getBoundingClientRect();
+    let best = null, bestDist = Infinity;
+    for(const c of active){
+      if(c.resolved) continue;
+      const cx = r.left + r.width*(c.x/100);
+      const cy = r.top + r.height/2;
+      const d = Math.hypot(clientX-cx, clientY-cy);
+      if(d<bestDist){ bestDist=d; best=c; }
+    }
+    if(best && bestDist<=44){
+      if(e.cancelable) e.preventDefault();
+      rejectChip(best, best.el);
+    }
+  }
+  belt.addEventListener('pointerdown', onBeltPointer, {passive:false});
+  belt.addEventListener('touchstart', onBeltPointer, {passive:false});
+  belt.addEventListener('mousedown', onBeltPointer);
+
+  function spawnChip(){
+    const isDefect = Math.random() < 0.4;
+    const voltage = isDefect ? (Math.random()<0.5 ? (2.0+Math.random()*0.8) : (7.0+Math.random()*0.9)) : (4.8+Math.random()*0.4);
+    const el = document.createElement('div');
+    el.className = 'eds-chip ' + (isDefect ? 'eds-defect' : 'eds-normal');
+    el.innerHTML = `<div class="eds-chip-v">${voltage.toFixed(1)}V</div>`;
+    belt.appendChild(el);
+    const chip = { el, x:100, defective:isDefect, born:performance.now(), resolved:false };
+    active.push(chip);
+    spawned++;
+  }
+
+  function checkDone(){
+    if(resolved>=TOTAL) finish();
+  }
+
+  function tick(now){
+    if(!running) return;
+    if(spawned<TOTAL && now-lastSpawn>=SPAWN_MS){ spawnChip(); lastSpawn=now; }
+    for(let i=active.length-1;i>=0;i--){
+      const c = active[i];
+      if(c.resolved){ active.splice(i,1); continue; }
+      const p = (now-c.born)/BELT_MS;
+      c.x = 100 - p*115;
+      c.el.style.left = c.x+'%';
+      if(p>=1){
+        c.resolved = true;
+        resolved++;
+        if(c.defective){
+          missedDefects++;
+          c.el.classList.add('eds-reject-bad');
+        }
+        c.el.remove();
+        active.splice(i,1);
+        checkDone();
+      }
+    }
+    hud.textContent = `${resolved} / ${TOTAL}`;
+    raf = requestAnimationFrame(tick);
+  }
+  raf = requestAnimationFrame(tick);
+
+  function finish(){
+    if(!running) return;
+    running = false;
+    if(raf) cancelAnimationFrame(raf);
+    const correctPasses = TOTAL - correctRejects - wrongRejects - missedDefects;
+    const correct = correctRejects + Math.max(0,correctPasses);
+    const score = Math.max(0, Math.round((correct/TOTAL)*100 - wrongRejects*6));
+    ctx.setMsg('EDS 검사 완료!', 800);
+    const diag = score>=78
+      ? `EDS 검사: 불량 칩을 정확히 골라내 신뢰도 높은 출하 품질을 확보했습니다.`
+      : `EDS 검사: 불량 오탐(${wrongRejects}건) 또는 놓친 불량(${missedDefects}건)이 있어 검사 정확도가 낮았습니다.`;
+    setTimeout(()=> onFinish(score, diag), 600);
+  }
+
+  return function cleanup(){ running=false; if(raf) cancelAnimationFrame(raf); };
+};
+
+/* ---------- STAGE 8 : packaging order ---------- */
+STAGE_GAMES.package = function(container, onFinish, ctx){
+  let running=true, raf=null, moveHandler=null, upHandler=null;
+  const wrap = document.createElement('div');
+  wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.flex='1';
+  wrap.innerHTML = `
+    <div class="pkg-stage" id="pkg-stage"></div>
+    <div class="pkg-caption" id="pkg-caption"></div>
+  `;
+  container.appendChild(wrap);
+  const stageEl = wrap.querySelector('#pkg-stage');
+  const captionEl = wrap.querySelector('#pkg-caption');
+
+  function setCaption(t){ captionEl.textContent = t; }
+  function clearDrag(){
+    if(moveHandler) window.removeEventListener('pointermove', moveHandler);
+    if(upHandler) window.removeEventListener('pointerup', upHandler);
+    moveHandler = upHandler = null;
+  }
+
+  /* ---- STEP 1: drag chip into the protective jelly tray ---- */
+  function stepTray(){
+    setCaption('완성된 칩을 보호용 젤리 트레이 안으로 드래그하세요! 🍮');
+    stageEl.innerHTML = `<svg viewBox="0 0 200 140" class="pkg-svg">
+      <g id="pkg-trayzone">
+        <rect x="60" y="80" width="80" height="46" rx="10" fill="#ffe9f5" stroke="var(--gold)" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="100" y="107" text-anchor="middle" fill="var(--text-dim)" font-size="11">젤리 트레이</text>
+      </g>
+      <rect id="pkg-chip" x="80" y="14" width="40" height="30" rx="5" fill="#341530" style="cursor:grab;touch-action:none;"/>
+      <text x="100" y="33" text-anchor="middle" fill="#bae6fd" font-size="8" font-family="'Jua'" style="pointer-events:none;">SILI</text>
+    </svg>`;
+    const svgEl = stageEl.querySelector('svg');
+    const chip = stageEl.querySelector('#pkg-chip');
+    let dragging=false, offX=0, offY=0, placed=false;
+
+    function toSvgPoint(clientX, clientY){
+      const pt = svgEl.createSVGPoint();
+      pt.x = clientX; pt.y = clientY;
+      const m = svgEl.getScreenCTM().inverse();
+      return pt.matrixTransform(m);
+    }
+    function onDown(e){
+      if(placed) return;
+      dragging = true;
+      const p = toSvgPoint(e.clientX, e.clientY);
+      offX = p.x - parseFloat(chip.getAttribute('x'));
+      offY = p.y - parseFloat(chip.getAttribute('y'));
+      chip.setPointerCapture && chip.setPointerCapture(e.pointerId);
+    }
+    function onMove(e){
+      if(!dragging) return;
+      const p = toSvgPoint(e.clientX, e.clientY);
+      chip.setAttribute('x', p.x-offX);
+      chip.setAttribute('y', p.y-offY);
+    }
+    function onUp(){
+      if(!dragging) return;
+      dragging = false;
+      const cx = parseFloat(chip.getAttribute('x'))+20;
+      const cy = parseFloat(chip.getAttribute('y'))+15;
+      if(cx>60 && cx<140 && cy>80 && cy<126){
+        placed = true;
+        clearDrag();
+        chip.style.transition='transform .3s ease';
+        chip.setAttribute('x','80'); chip.setAttribute('y','93');
+        playSuccessChime(7);
+        setTimeout(stepSeal, 700);
+      } else {
+        chip.style.transition='x .3s ease, y .3s ease';
+        chip.setAttribute('x','80'); chip.setAttribute('y','14');
+      }
+    }
+    chip.addEventListener('pointerdown', onDown);
+    moveHandler = onMove; upHandler = onUp;
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  /* ---- STEP 2: press-seal the lid with just the right pressure ---- */
+  function stepSeal(){
+    setCaption('덮개를 꾹 눌러 딱 맞는 압력으로 밀봉하세요! 목표 구간에서 손을 떼세요.');
+    stageEl.innerHTML = `<svg viewBox="0 0 200 140" class="pkg-svg">
+      <rect x="60" y="80" width="80" height="46" rx="10" fill="#ffe9f5" stroke="var(--gold)" stroke-width="2"/>
+      <rect x="75" y="88" width="50" height="30" rx="5" fill="#341530"/>
+      <rect id="pkg-lid" x="55" y="34" width="90" height="14" rx="4" fill="#93c5fd" stroke="var(--line)" stroke-width="2"/>
+      <g id="pkg-seal-ok" opacity="0">
+        <circle cx="100" cy="103" r="16" fill="none" stroke="var(--good)" stroke-width="3"/>
+      </g>
+    </svg>
+    <div class="thermo-wrap" style="margin-top:6px;">
+      <svg class="thermo-svg" viewBox="0 0 220 40">
+        <rect x="10" y="14" width="200" height="14" rx="7" fill="#ffe3ef" stroke="var(--line)" stroke-width="2"/>
+        <rect id="pkg-pressure-fill" x="10" y="14" width="0" height="14" rx="7" fill="var(--warn)"/>
+        <line x1="150" y1="6" x2="150" y2="34" stroke="var(--good)" stroke-width="3" stroke-dasharray="3 3"/>
+      </svg>
+    </div>
+    <div class="center" style="padding:10px 0 14px;">
+      <button class="btn" id="pkg-seal-btn">🧴 덮개 가압 (꾹 누르기)</button>
+    </div>`;
+    const lid = stageEl.querySelector('#pkg-lid');
+    const okMark = stageEl.querySelector('#pkg-seal-ok');
+    const fill = stageEl.querySelector('#pkg-pressure-fill');
+    const btn = stageEl.querySelector('#pkg-seal-btn');
+    let holding=false, t0=0, done=false;
+    const RISE_MS = 1900;
+    function tick(now){
+      if(!holding || done) return;
+      const p = Math.min(1, (now-t0)/RISE_MS);
+      fill.setAttribute('width', (200*p).toFixed(1));
+      lid.setAttribute('y', (34+p*54).toFixed(1));
+      if(p>=1){ release(true); return; }
+      raf = requestAnimationFrame(tick);
+    }
+    function release(timedOut){
+      if(done) return;
+      done = true; holding = false;
+      if(raf) cancelAnimationFrame(raf);
+      const p = parseFloat(fill.getAttribute('width'))/200;
+      const target = 150/220; // matches the dashed line position
+      const diff = Math.abs(p-target);
+      const score = timedOut ? 20 : Math.max(20, Math.round(100 - diff*260));
+      if(score>=70){ okMark.setAttribute('opacity','1'); }
+      finish(score);
+    }
+    btn.addEventListener('pointerdown', ()=>{ if(done) return; holding=true; t0=performance.now(); raf=requestAnimationFrame(tick); });
+    btn.addEventListener('pointerup', ()=> release(false));
+    btn.addEventListener('pointerleave', ()=>{ if(holding) release(false); });
+  }
+
+  function finish(score){
+    if(!running) return;
+    running = false;
+    clearDrag();
+    setCaption('완제품 반도체 탄생! 🎉');
+    ctx.setMsg(score>=70 ? '완벽하게 밀봉! 완제품 반도체 탄생 🎉' : '밀봉 압력이 아쉬워요...', 900);
+    const diag = score>=70
+      ? `패키징 공정: 딱 맞는 압력으로 밀봉해 충격에 강한 완제품이 만들어졌습니다.`
+      : `패키징 공정: 밀봉 압력이 목표와 어긋나 외부 충격에 다소 취약할 수 있습니다.`;
+    setTimeout(()=> onFinish(score, diag), 700);
+  }
+
+  stepTray();
+
+  return function cleanup(){ running=false; if(raf) cancelAnimationFrame(raf); clearDrag(); };
+};
+
+/* ============================================================
+   9. INIT
+   ============================================================ */
+state = loadState();
+document.getElementById('btn-continue').style.display = anyProgress() ? 'inline-block' : 'none';
+
+})();
+</script>
+</body>
+</html>
