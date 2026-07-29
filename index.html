@@ -802,75 +802,142 @@ function playTone(freq, t0, dur, type, peakGain){
   osc.connect(g); g.connect(masterGain);
   osc.start(t0); osc.stop(t0+dur+0.03);
 }
-const STAGE_BASE_FREQ = [392.00,440.00,493.88,587.33,659.25,739.99,880.00,987.77];
-const SCALE_STEPS = [1, 9/8, 5/4, 3/2, 5/3, 2, 9/4];
+const STAGE_BASE_FREQ = [523.25,587.33,659.25,698.46,783.99,880.00,987.77,1046.50];
+const SCALE_STEPS = [1, 9/8, 5/4, 3/2, 5/3, 2, 9/4, 5/2];
 const STAGE_MELODIES = [
-  [0,2,4,2,0,2,4,5],
-  [0,1,2,3,2,1,0,3],
-  [4,2,0,2,4,5,6,4],
-  [0,0,2,2,4,4,2,0],
-  [2,4,5,4,2,0,2,4],
-  [0,3,2,4,3,5,4,2],
-  [4,5,6,4,2,4,2,0],
-  [0,2,4,5,6,5,4,2]
+  [0,2,3,2,4,3,5,4],
+  [0,1,2,3,2,1,0,2],
+  [2,3,4,5,4,3,2,0],
+  [0,2,4,5,6,5,4,2],
+  [4,5,6,5,4,3,2,0],
+  [0,3,2,4,3,5,6,4],
+  [2,4,5,7,6,5,4,2],
+  [0,2,4,6,7,6,4,2]
 ];
-// lively marimba-style loop: ONE clean voice per note (no stacked harmonics — that's
-// what made earlier "cute" attempts sound cluttered) plus a soft low bounce every 2 beats.
+// bright, bouncy "healing pop" loop: a soft sustained pad chord underneath for warmth,
+// a plucky pentatonic bell melody on top for sparkle, plus a light bass pulse and a
+// gentle shaker tick every step to keep it feeling upbeat rather than sleepy.
 function startAmbience(i){
   stopAmbience();
   if(!audioCtx) return;
   const base = STAGE_BASE_FREQ[i%STAGE_BASE_FREQ.length];
   const melody = STAGE_MELODIES[i%STAGE_MELODIES.length];
-  const bpm = 126;
+  const bpm = 132;
   const stepDur = 60/bpm/2;
+  const barDur = stepDur*8;
   const t0 = audioCtx.currentTime;
   const g = audioCtx.createGain();
   g.gain.value = 0;
   g.connect(masterGain);
-  g.gain.linearRampToValueAtTime(0.34, t0+0.5);
+  g.gain.linearRampToValueAtTime(0.4, t0+0.6);
+
+  // warm pad bus: a gentle lowpass keeps the sustained chord soft — this is the "healing" bed
+  const padFilter = audioCtx.createBiquadFilter();
+  padFilter.type = 'lowpass';
+  padFilter.frequency.value = 1400;
+  padFilter.connect(g);
 
   let nextNoteTime = t0 + 0.05;
   let step = 0;
   const lookahead = 0.15;
-  function stepLength(stepIdx){ return stepIdx%2===0 ? stepDur*1.12 : stepDur*0.88; }
+  function stepLength(stepIdx){ return stepIdx%2===0 ? stepDur*1.08 : stepDur*0.92; }
+
+  function schedulePadChord(time){
+    // root + 3rd + 5th an octave down, slow swell in and out — the sustained warm wash
+    [0,2,3].forEach((deg,idx)=>{
+      const freq = base * SCALE_STEPS[deg] * 0.5;
+      const po = audioCtx.createOscillator();
+      const pg = audioCtx.createGain();
+      po.type = 'sine';
+      po.frequency.value = freq;
+      po.detune.value = (idx-1)*4;
+      pg.gain.setValueAtTime(0.0001, time);
+      pg.gain.linearRampToValueAtTime(0.09, time+1.4);
+      pg.gain.linearRampToValueAtTime(0.0001, time+barDur-0.3);
+      po.connect(pg); pg.connect(padFilter);
+      po.start(time); po.stop(time+barDur);
+    });
+  }
 
   function scheduleStep(stepIdx, time){
-    // soft low "boop" bounce on every beat now — more energy under the melody
+    // tiny random timing/velocity/pitch variation per note — a perfectly
+    // quantized, identical-every-time loop is exactly what reads as "기계적".
+    const jitter = (Math.random()-0.5)*0.015;
+    const vel = 0.85 + Math.random()*0.3;
+    const detune = (Math.random()-0.5)*10;
+
+    if(stepIdx%8===0) schedulePadChord(time);
+
     if(stepIdx%2===0){
+      // soft plucked bass note every 2 beats — the bouncy, upbeat groove
+      const bt = time;
       const boop = audioCtx.createOscillator();
       const bg = audioCtx.createGain();
-      boop.type = 'sine';
-      boop.frequency.setValueAtTime(base*0.55, time);
-      boop.frequency.exponentialRampToValueAtTime(base*0.32, time+0.09);
-      bg.gain.setValueAtTime(0.001, time);
-      bg.gain.linearRampToValueAtTime(0.14, time+0.012);
-      bg.gain.exponentialRampToValueAtTime(0.001, time+0.16);
+      boop.type = 'triangle';
+      boop.frequency.setValueAtTime(base*0.5, bt);
+      bg.gain.setValueAtTime(0.0001, bt);
+      bg.gain.linearRampToValueAtTime(0.16*vel, bt+0.01);
+      bg.gain.exponentialRampToValueAtTime(0.001, bt+0.22);
       boop.connect(bg); bg.connect(g);
-      boop.start(time); boop.stop(time+0.17);
+      boop.start(bt); boop.stop(bt+0.24);
     }
-    // marimba-style pluck: triangle voice, quick attack, fast decay
+
+    // light shaker tick every step — subtle rhythmic sparkle to keep the energy up
+    const bufSize = Math.floor(audioCtx.sampleRate*0.03);
+    const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let n=0;n<bufSize;n++) data[n] = (Math.random()*2-1)*(1-n/bufSize);
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buf;
+    const nf = audioCtx.createBiquadFilter();
+    nf.type = 'highpass'; nf.frequency.value = 5000;
+    const ng = audioCtx.createGain();
+    ng.gain.setValueAtTime(0.025*vel, time);
+    ng.gain.exponentialRampToValueAtTime(0.0001, time+0.03);
+    noise.connect(nf); nf.connect(ng); ng.connect(g);
+    noise.start(time); noise.stop(time+0.035);
+
+    // playful little upward flourish at the top of every loop — a small "doodle" accent
+    if(stepIdx%8===0){
+      [0,2,4].forEach((deg,idx)=>{
+        const ft = time + idx*0.05;
+        const fo = audioCtx.createOscillator();
+        const fg = audioCtx.createGain();
+        fo.type = 'sine';
+        fo.frequency.value = base * SCALE_STEPS[deg] * 2;
+        fg.gain.setValueAtTime(0.0001, ft);
+        fg.gain.linearRampToValueAtTime(0.09, ft+0.01);
+        fg.gain.exponentialRampToValueAtTime(0.0001, ft+0.12);
+        fo.connect(fg); fg.connect(g);
+        fo.start(ft); fo.stop(ft+0.13);
+      });
+    }
+    // bright kalimba-style pluck: triangle voice, quick attack, fast decay
     const degree = melody[stepIdx % melody.length];
     const freq = base * SCALE_STEPS[degree];
+    const t = time + jitter;
     const osc = audioCtx.createOscillator();
     const og = audioCtx.createGain();
     osc.type = 'triangle';
     osc.frequency.value = freq;
-    og.gain.setValueAtTime(0.001, time);
-    og.gain.linearRampToValueAtTime(0.24, time+0.008);
-    og.gain.exponentialRampToValueAtTime(0.001, time+0.2);
+    osc.detune.value = detune;
+    og.gain.setValueAtTime(0.0001, t);
+    og.gain.linearRampToValueAtTime(0.26*vel, t+0.007);
+    og.gain.exponentialRampToValueAtTime(0.0001, t+0.22);
     osc.connect(og); og.connect(g);
-    osc.start(time); osc.stop(time+0.22);
+    osc.start(t); osc.stop(t+0.24);
 
     // bright sine shimmer an octave up — quiet, quick, just enough to lift the tone
     const sparkle = audioCtx.createOscillator();
     const sg = audioCtx.createGain();
     sparkle.type = 'sine';
     sparkle.frequency.value = freq*2;
-    sg.gain.setValueAtTime(0.001, time);
-    sg.gain.linearRampToValueAtTime(0.07, time+0.006);
-    sg.gain.exponentialRampToValueAtTime(0.001, time+0.13);
+    sparkle.detune.value = detune;
+    sg.gain.setValueAtTime(0.0001, t);
+    sg.gain.linearRampToValueAtTime(0.08*vel, t+0.005);
+    sg.gain.exponentialRampToValueAtTime(0.0001, t+0.14);
     sparkle.connect(sg); sg.connect(g);
-    sparkle.start(time); sparkle.stop(time+0.14);
+    sparkle.start(t); sparkle.stop(t+0.15);
   }
 
   const timerId = setInterval(()=>{
@@ -969,6 +1036,16 @@ document.addEventListener('pointerdown', function unlockTitleAmbience(){
   ensureAudio();
   if(screens['screen-title'].classList.contains('active')) startAmbience(0);
 }, { once:true });
+// mobile Safari/Chrome don't reliably honor `touch-action:none` on SVG nodes or on
+// elements created after first paint (all our drag targets are built dynamically per
+// minigame), so a finger-drag can still scroll the page underneath the game. Belt-drag
+// worked around this locally with an explicit touchmove preventDefault; apply the same
+// fix globally to every drag surface so scrolling never hijacks a drag anywhere.
+document.addEventListener('touchmove', function(e){
+  if(e.target.closest('.slice-area, .ionz-area, .etch2-grid, .oneline-area, .belt-wrap, #ph-btn, #pkg-seal-btn, [style*="touch-action:none"]')){
+    if(e.cancelable) e.preventDefault();
+  }
+}, { passive:false });
 
 /* ============================================================
    5. GAME RUNNER — explanation, minigame and stage-clear all
