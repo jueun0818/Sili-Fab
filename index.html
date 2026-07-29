@@ -3,8 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#ffeef6">
+<meta name="description" content="삼성전자 '반도체 8대 공정' 순서를 따라가며 웨이퍼를 완제품 반도체로 만들어보는 고1 대상 교육용 미니게임">
 <title>실리 팹 : 반도체 8대 공정 챌린지</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><rect width=%2216%22 height=%2216%22 fill=%22%2300e5ff%22/><rect x=%224%22 y=%224%22 width=%228%22 height=%228%22 fill=%22%230b1220%22/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><rect width=%2216%22 height=%2216%22 rx=%223%22 fill=%22%23ff8fc0%22/><rect x=%224%22 y=%224%22 width=%228%22 height=%228%22 rx=%221%22 fill=%22%232f6fed%22/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
@@ -391,7 +393,7 @@ body{
 .exp-cell.protect{background:#3a4a72;}
 .exp-cell.remove{background:#8fb4ff;}
 .exp-wafer-svg{width:100%;max-width:260px;height:auto;}
-.ionz-area{flex:1;display:flex;align-items:center;justify-content:center;padding:8px 16px;min-height:150px;border-radius:10px;}
+.ionz-area{flex:1;display:flex;align-items:center;justify-content:center;padding:8px 16px;min-height:150px;border-radius:10px;touch-action:none;}
 .ionz-svg{width:100%;max-width:300px;height:auto;}
 #ionz-slot circle{cursor:pointer;}
 .ionz-area.ionz-flash{animation:ionzFlash .3s ease;}
@@ -403,6 +405,16 @@ body{
 .choice-card.tried{opacity:.4;filter:grayscale(.6);}
 
 /* stage4 drag-etch */
+.etch-warning{
+  margin:10px 16px 0;padding:10px 14px;border-radius:10px;
+  background:rgba(255,176,32,.14);border:2px solid var(--warn);
+  font-size:14.5px;font-weight:700;text-align:center;color:var(--text);
+  animation:etchWarnPulse 1.4s ease infinite;
+}
+@keyframes etchWarnPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,176,32,.35);}
+  50%{box-shadow:0 0 10px 3px rgba(255,176,32,.5);}
+}
 .etch2-grid{display:grid;gap:2px;margin:14px auto;padding:0 16px;max-width:340px;width:100%;touch-action:none;user-select:none;}
 .etch2-cell{aspect-ratio:1;border-radius:3px;}
 .etch2-cell.protect{background:var(--warn);}
@@ -613,8 +625,8 @@ const STAGES = [
     icon:'mask' },
   { key:'etch', name:'식각 공정', sub:'빗겨 자르기 & 패턴 깎기', color:'#2f6fed',
     desc:'노광되지 않아 감광액이 씻겨나간 부분, 즉 회로가 아닌 "군더더기"를 부식 가스로 제거해야 원하는 회로 모양만 남아요. 회로선을 살짝이라도 건드리면 그 즉시 칩 전체가 대형 불량이 돼요 — 절묘한 각도로 빗겨가며 깎아내야 해요.',
-    howto:'손가락으로 화면을 문질러 파란 칸(제거할 부분)을 깎아내세요. 노란 회로선은 절대 건드리면 안 돼요!',
-    mission:'✋ 회로선을 피해서 나머지 부분을 문질러 깎아내라! 한 번의 실수는 대형 불량!',
+    howto:'손가락으로 화면을 문질러 연한 파란 칸(제거할 부분)을 깎아내세요. 진한 파란 회로선은 절대 건드리면 안 돼요! ⚠️ 한 번만 잘못 눌러도 즉시 대형 불량이에요.',
+    mission:'✋ 진한 색 회로선을 절대 건드리지 말고 나머지 부분만 문질러 깎아내라!',
     icon:'etch' },
   { key:'iondep', name:'박막증착 & 이온주입', sub:'이온 순간 저격', color:'#7dd3fc',
     desc:'순수한 실리콘은 사실 전기가 잘 통하지 않아요. 여기에 특정 불순물 이온을 얇은 막 위에 강제로 심어 넣어야(도핑) 비로소 전류를 조절할 수 있는 "반도체"다운 성질을 갖게 돼요. 격자 슬롯 하나하나에 순식간에 이온을 정확히 박아 넣어야 균일한 도핑이 완성돼요.',
@@ -690,6 +702,7 @@ function showScreen(id){
   Object.values(screens).forEach(s=>s.classList.remove('active'));
   screens[id].classList.add('active');
   window.scrollTo(0,0);
+  if(id==='screen-title' && audioCtx) startAmbience(0);
 }
 
 /* custom styled confirm modal, replacing the native browser confirm() popup */
@@ -790,10 +803,7 @@ function playTone(freq, t0, dur, type, peakGain){
   osc.start(t0); osc.stop(t0+dur+0.03);
 }
 const STAGE_BASE_FREQ = [392.00,440.00,493.88,587.33,659.25,739.99,880.00,987.77];
-// Major-pentatonic-ish scale degrees (relative multipliers of the stage root) —
-// picked so every melody note lands on a pleasant, "cute" music-box interval.
 const SCALE_STEPS = [1, 9/8, 5/4, 3/2, 5/3, 2, 9/4];
-// 8 genuinely different little tunes, one per stage (not just the same shape transposed).
 const STAGE_MELODIES = [
   [0,2,4,2,0,2,4,5],
   [0,1,2,3,2,1,0,3],
@@ -804,83 +814,70 @@ const STAGE_MELODIES = [
   [4,5,6,4,2,4,2,0],
   [0,2,4,5,6,5,4,2]
 ];
+// lively marimba-style loop: ONE clean voice per note (no stacked harmonics — that's
+// what made earlier "cute" attempts sound cluttered) plus a soft low bounce every 2 beats.
 function startAmbience(i){
   stopAmbience();
   if(!audioCtx) return;
   const base = STAGE_BASE_FREQ[i%STAGE_BASE_FREQ.length];
   const melody = STAGE_MELODIES[i%STAGE_MELODIES.length];
-  const bpm = 132;
-  const stepDur = 60/bpm/2; // nominal 8th note; actual spacing gets a skip/swing below
+  const bpm = 126;
+  const stepDur = 60/bpm/2;
   const t0 = audioCtx.currentTime;
   const g = audioCtx.createGain();
   g.gain.value = 0;
   g.connect(masterGain);
-  g.gain.linearRampToValueAtTime(0.3, t0+0.35);
+  g.gain.linearRampToValueAtTime(0.34, t0+0.5);
 
   let nextNoteTime = t0 + 0.05;
   let step = 0;
   const lookahead = 0.15;
-  // "skip" swing: long-short-long-short spacing so the loop bounces/dances
-  // instead of ticking evenly — this is what actually reads as "playful".
-  function stepLength(stepIdx){ return stepIdx%2===0 ? stepDur*1.3 : stepDur*0.7; }
+  function stepLength(stepIdx){ return stepIdx%2===0 ? stepDur*1.12 : stepDur*0.88; }
 
-  function scheduleNote(stepIdx, time, dur){
-    // light bell "ting" accent on the first beat of every 4 — bright, not a bass thud
-    if(stepIdx%4===0){
-      const ting = audioCtx.createOscillator();
-      const tg = audioCtx.createGain();
-      ting.type='sine';
-      ting.frequency.value = base*3;
-      tg.gain.setValueAtTime(0.05, time);
-      tg.gain.exponentialRampToValueAtTime(0.001, time+0.12);
-      ting.connect(tg); tg.connect(g);
-      ting.start(time); ting.stop(time+0.13);
+  function scheduleStep(stepIdx, time){
+    // soft low "boop" bounce on every beat now — more energy under the melody
+    if(stepIdx%2===0){
+      const boop = audioCtx.createOscillator();
+      const bg = audioCtx.createGain();
+      boop.type = 'sine';
+      boop.frequency.setValueAtTime(base*0.55, time);
+      boop.frequency.exponentialRampToValueAtTime(base*0.32, time+0.09);
+      bg.gain.setValueAtTime(0.001, time);
+      bg.gain.linearRampToValueAtTime(0.14, time+0.012);
+      bg.gain.exponentialRampToValueAtTime(0.001, time+0.16);
+      boop.connect(bg); bg.connect(g);
+      boop.start(time); boop.stop(time+0.17);
     }
-    // cute chiptune melody note: square (bright/8-bit) + triangle (body) blended,
-    // with a tiny upward pitch "hop" into the note for a springy attack.
+    // marimba-style pluck: triangle voice, quick attack, fast decay
     const degree = melody[stepIdx % melody.length];
     const freq = base * SCALE_STEPS[degree];
-    const noteDur = Math.min(dur*0.85, 0.32);
+    const osc = audioCtx.createOscillator();
+    const og = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    og.gain.setValueAtTime(0.001, time);
+    og.gain.linearRampToValueAtTime(0.24, time+0.008);
+    og.gain.exponentialRampToValueAtTime(0.001, time+0.2);
+    osc.connect(og); og.connect(g);
+    osc.start(time); osc.stop(time+0.22);
 
-    const sq = audioCtx.createOscillator();
-    const sqg = audioCtx.createGain();
-    sq.type='square';
-    sq.frequency.setValueAtTime(freq*0.9, time);
-    sq.frequency.exponentialRampToValueAtTime(freq, time+0.035);
-    sqg.gain.setValueAtTime(0.001, time);
-    sqg.gain.linearRampToValueAtTime(0.11, time+0.012);
-    sqg.gain.exponentialRampToValueAtTime(0.001, time+noteDur);
-    sq.connect(sqg); sqg.connect(g);
-    sq.start(time); sq.stop(time+noteDur+0.02);
-
-    const tri = audioCtx.createOscillator();
-    const trig = audioCtx.createGain();
-    tri.type='triangle';
-    tri.frequency.setValueAtTime(freq*0.9, time);
-    tri.frequency.exponentialRampToValueAtTime(freq, time+0.035);
-    trig.gain.setValueAtTime(0.001, time);
-    trig.gain.linearRampToValueAtTime(0.14, time+0.012);
-    trig.gain.exponentialRampToValueAtTime(0.001, time+noteDur);
-    tri.connect(trig); trig.connect(g);
-    tri.start(time); tri.stop(time+noteDur+0.02);
-
+    // bright sine shimmer an octave up — quiet, quick, just enough to lift the tone
     const sparkle = audioCtx.createOscillator();
     const sg = audioCtx.createGain();
-    sparkle.type='sine';
+    sparkle.type = 'sine';
     sparkle.frequency.value = freq*2;
     sg.gain.setValueAtTime(0.001, time);
-    sg.gain.linearRampToValueAtTime(0.06, time+0.008);
-    sg.gain.exponentialRampToValueAtTime(0.001, time+noteDur*0.55);
+    sg.gain.linearRampToValueAtTime(0.07, time+0.006);
+    sg.gain.exponentialRampToValueAtTime(0.001, time+0.13);
     sparkle.connect(sg); sg.connect(g);
-    sparkle.start(time); sparkle.stop(time+noteDur*0.6);
+    sparkle.start(time); sparkle.stop(time+0.14);
   }
 
   const timerId = setInterval(()=>{
     if(!audioCtx) return;
     while(nextNoteTime < audioCtx.currentTime + lookahead){
-      const len = stepLength(step);
-      scheduleNote(step, nextNoteTime, len);
-      nextNoteTime += len;
+      scheduleStep(step, nextNoteTime);
+      nextNoteTime += stepLength(step);
       step++;
     }
   }, 50);
@@ -933,10 +930,45 @@ function playDangerBeep(){
   playTone(880, t, 0.12, 'square', 0.16);
   playTone(880, t+0.16, 0.12, 'square', 0.16);
 }
+function playSliceSound(good){
+  if(!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const bufSize = Math.floor(audioCtx.sampleRate * 0.07);
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for(let i=0;i<bufSize;i++) data[i] = (Math.random()*2-1) * (1-i/bufSize);
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buf;
+  const nf = audioCtx.createBiquadFilter();
+  nf.type = 'highpass'; nf.frequency.value = 2000;
+  const ng = audioCtx.createGain();
+  ng.gain.setValueAtTime(good?0.28:0.15, t);
+  ng.gain.exponentialRampToValueAtTime(0.001, t+0.08);
+  noise.connect(nf); nf.connect(ng); ng.connect(masterGain);
+  noise.start(t); noise.stop(t+0.09);
+
+  const zip = audioCtx.createOscillator();
+  const zg = audioCtx.createGain();
+  zip.type = 'sawtooth';
+  zip.frequency.setValueAtTime(good?1500:700, t);
+  zip.frequency.exponentialRampToValueAtTime(good?2600:480, t+0.09);
+  zg.gain.setValueAtTime(0.001, t);
+  zg.gain.linearRampToValueAtTime(good?0.12:0.06, t+0.01);
+  zg.gain.exponentialRampToValueAtTime(0.001, t+0.1);
+  zip.connect(zg); zg.connect(masterGain);
+  zip.start(t); zip.stop(t+0.11);
+}
 document.querySelectorAll('.snd-toggle').forEach(b=>{
   b.textContent = muted?'🔇':'🔊';
   b.addEventListener('click', ()=>{ ensureAudio(); setMuted(!muted); });
 });
+// browsers block audio until a user gesture — start the title theme on the very first
+// tap/click anywhere, as long as we're still sitting on the title screen at that point.
+document.addEventListener('pointerdown', function unlockTitleAmbience(){
+  document.removeEventListener('pointerdown', unlockTitleAmbience);
+  ensureAudio();
+  if(screens['screen-title'].classList.contains('active')) startAmbience(0);
+}, { once:true });
 
 /* ============================================================
    5. GAME RUNNER — explanation, minigame and stage-clear all
@@ -1050,6 +1082,7 @@ function onStageComplete(i, rawScore, diag){
 
 function renderCompleteOverlay(i, score){
   const isLast = (i+1 >= STAGES.length);
+  const st = STAGES[i];
   const ov = document.createElement('div');
   ov.className = 'stage-overlay';
   ov.innerHTML = `
@@ -1058,6 +1091,10 @@ function renderCompleteOverlay(i, score){
       <div class="badge">STAGE ${i+1} CLEAR</div>
       <div class="result-stars">${starsFor(score)}</div>
       <div class="result-score">${score}<span style="font-size:20px;"> 점</span></div>
+    </div>
+    <div class="rules-card">
+      <div class="rules-title">🔬 실제 공정에서는</div>
+      <div class="rules-text">${st.desc}</div>
     </div>
     <div class="spacer"></div>
     <div class="btn-row">
@@ -1262,6 +1299,21 @@ STAGE_GAMES.wafer = function(container, onFinish, ctx){
   area.addEventListener('pointerdown', onDown);
   window.addEventListener('pointerup', onUp);
 
+  function sliceBurst(x,y,color){
+    for(let i=0;i<9;i++){
+      const ang = (i/9)*Math.PI*2 + Math.random()*0.3;
+      const p = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      p.setAttribute('cx',x); p.setAttribute('cy',y); p.setAttribute('r','2.5'); p.setAttribute('fill',color);
+      svg.appendChild(p);
+      const dist = 16+Math.random()*16;
+      const dx = Math.cos(ang)*dist, dy = Math.sin(ang)*dist;
+      p.animate([
+        {transform:'translate(0,0)', opacity:1},
+        {transform:`translate(${dx}px,${dy}px)`, opacity:0}
+      ], {duration:340, easing:'ease-out'});
+      setTimeout(()=> p.remove(), 360);
+    }
+  }
   function roundResult(scoreRound, kind, ex, ey){
     if(ringRaf) cancelAnimationFrame(ringRaf);
     total += scoreRound;
@@ -1276,6 +1328,10 @@ STAGE_GAMES.wafer = function(container, onFinish, ctx){
     area.classList.add(cls==='good' ? 'flash-good' : 'flash-bad');
     if(kind==='hit'){
       svg.innerHTML += `<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" opacity=".9"/>`;
+      sliceBurst((sx+ex)/2, (sy+ey)/2, cls==='good' ? 'var(--accent2)' : 'var(--warn)');
+      playSliceSound(cls==='good');
+    } else {
+      playSliceSound(false);
     }
     discEl = null;
     round++;
@@ -1578,12 +1634,14 @@ function renderExperimentMinigame(container, onFinish, ctx, cfg){
 
 /* ---------- STAGE 4 : etch — plasma gas choice ---------- */
 STAGE_GAMES.etch = function(container, onFinish, ctx){
-  const N=8, TIME_LIMIT=13;
+  const N=8, TIME_LIMIT=19;
   const midR = 3, midC = 4;
   let running=true, elapsed=0, raf=null, removed=0, total=0, dragging=false, failed=false;
   const wrap = document.createElement('div');
   wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.flex='1';
-  wrap.innerHTML = `<div style="text-align:center;padding:10px 16px 0;font-size:16.5px;color:var(--text-dim);">회로선(<span style="color:var(--warn);font-weight:700;">■</span>)을 피해 나머지 칸을 손가락으로 문질러 깎아내세요! 회로를 건드리면 즉시 불량!</div>
+  wrap.innerHTML = `
+  <div class="etch-warning">⚠️ <span style="color:var(--warn);font-weight:700;">진한 색(■) 칸은 절대 누르면 안 돼요!</span> 누르는 즉시 대형 불량이에요.</div>
+  <div style="text-align:center;padding:4px 16px 0;font-size:15px;color:var(--text-dim);">회로선(진한 색)을 피해 나머지 칸(연한 색)만 손가락으로 문질러 깎아내세요.</div>
   <div class="etch2-grid" id="e2-grid" style="grid-template-columns:repeat(${N},1fr);"></div>`;
   container.appendChild(wrap);
   const grid = wrap.querySelector('#e2-grid');
@@ -2229,7 +2287,7 @@ STAGE_GAMES.package = function(container, onFinish, ctx){
       </svg>
     </div>
     <div class="center" style="padding:10px 0 14px;">
-      <button class="btn" id="pkg-seal-btn">🧴 덮개 가압 (꾹 누르기)</button>
+      <button class="btn" id="pkg-seal-btn" style="touch-action:none;user-select:none;">🧴 덮개 가압 (꾹 누르기)</button>
     </div>`;
     const lid = stageEl.querySelector('#pkg-lid');
     const okMark = stageEl.querySelector('#pkg-seal-ok');
