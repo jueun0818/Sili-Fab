@@ -1180,7 +1180,11 @@ function renderCompleteOverlay(i, score){
     </div>
   `;
   gameArea.appendChild(ov);
-  ov.querySelector('#ov-retry').addEventListener('click', ()=>{ ov.remove(); launchMinigame(i); });
+  ov.querySelector('#ov-retry').addEventListener('click', ()=>{
+    ov.remove();
+    gameArea.innerHTML = '';
+    launchMinigame(i);
+  });
   ov.querySelector('#ov-next').addEventListener('click', ()=>{
     if(isLast){
       stopAmbience();
