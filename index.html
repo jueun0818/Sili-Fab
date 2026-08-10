@@ -528,6 +528,12 @@ body{
   .pwa-banner{left:10px;right:10px;padding:10px 10px 10px 12px;}
   .pwa-banner .pwa-desc{font-size:11.5px;}
 }
+/* keep the floating mute button clear of the banner while it's shown */
+body.pwa-banner-open #btn-sound,
+body.pwa-banner-open #btn-game-sound{
+  transform:translateY(-78px);
+  transition:transform .3s cubic-bezier(.2,.9,.3,1);
+}
 </style>
 </head>
 <body>
@@ -2523,9 +2529,11 @@ function showBanner(mode, title, desc, actionLabel, onAction){
     $action.onclick = null;
   }
   $banner.classList.add('show');
+  document.body.classList.add('pwa-banner-open');
 }
 function hideBanner(){
   $banner.classList.remove('show');
+  document.body.classList.remove('pwa-banner-open');
   currentMode = null;
 }
 $close.addEventListener('click', ()=>{
