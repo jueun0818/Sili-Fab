@@ -266,7 +266,7 @@ body{
 }
 .game-footer-hint{font-size:15px;color:var(--text-dim);text-align:center;}
 .stage-overlay{
-  position:absolute; inset:0; z-index:30;
+  position:absolute; inset:0; z-index:60;
   background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(255,241,248,.99));
   display:flex; flex-direction:column;
   padding:20px; overflow-y:auto;
@@ -424,13 +424,16 @@ body{
   0%,100%{box-shadow:0 0 0 0 rgba(255,176,32,.35);}
   50%{box-shadow:0 0 10px 3px rgba(255,176,32,.5);}
 }
-.etch2-grid{display:grid;gap:2px;margin:14px auto;padding:0 16px;max-width:340px;width:100%;touch-action:none;user-select:none;}
+.etch2-grid{position:relative;display:grid;gap:2px;margin:14px auto;padding:0 16px;max-width:340px;width:100%;touch-action:none;user-select:none;}
 .etch2-cell{aspect-ratio:1;border-radius:3px;}
 .etch2-cell.protect{background:var(--warn);}
 .etch2-cell.remove{background:#8fb4ff;}
+.etch2-cell.remove.etch2-going{background:#c3d9ff;box-shadow:0 0 10px 2px rgba(56,189,248,.7);}
 .etch2-cell.etch2-fail{background:var(--bad) !important;}
 @keyframes etch2Shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
 .etch2-grid.etch2-shake{animation:etch2Shake .35s ease;}
+.etch-spark{position:absolute;border-radius:50%;background:radial-gradient(circle,#eaf3ff 0%,var(--accent2) 60%,transparent 100%);pointer-events:none;z-index:6;}
+.etch-smoke{position:absolute;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.9) 0%,rgba(200,222,255,.5) 55%,transparent 75%);pointer-events:none;z-index:5;filter:blur(1px);}
 
 
 /* stage6 wiring */
@@ -1085,6 +1088,23 @@ function playSliceSound(good){
   zg.gain.exponentialRampToValueAtTime(0.001, t+0.1);
   zip.connect(zg); zg.connect(masterGain);
   zip.start(t); zip.stop(t+0.11);
+}
+function playEtchSound(){
+  if(!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const bufSize = Math.floor(audioCtx.sampleRate * 0.045);
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for(let i=0;i<bufSize;i++) data[i] = (Math.random()*2-1) * (1-i/bufSize);
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buf;
+  const nf = audioCtx.createBiquadFilter();
+  nf.type = 'bandpass'; nf.frequency.value = 3000+Math.random()*1600; nf.Q.value = 1.1;
+  const ng = audioCtx.createGain();
+  ng.gain.setValueAtTime(0.09, t);
+  ng.gain.exponentialRampToValueAtTime(0.001, t+0.05);
+  noise.connect(nf); nf.connect(ng); ng.connect(masterGain);
+  noise.start(t); noise.stop(t+0.06);
 }
 document.querySelectorAll('.snd-toggle').forEach(b=>{
   b.textContent = muted?'🔇':'🔊';
@@ -1810,11 +1830,48 @@ STAGE_GAMES.etch = function(container, onFinish, ctx){
     }
     if(!el.dataset.done){
       el.dataset.done='1';
-      el.style.transition='transform .18s ease, opacity .18s ease';
-      el.style.transform='scale(0)';
-      el.style.opacity='0';
+      etchBurst(el);
+      playEtchSound();
+      el.classList.add('etch2-going');
+      requestAnimationFrame(()=>{
+        el.style.transition='transform .18s ease, opacity .18s ease';
+        el.style.transform='scale(0)';
+        el.style.opacity='0';
+      });
       removed++;
       if(removed>=total) succeed();
+    }
+  }
+  function etchBurst(cell){
+    const gridRect = grid.getBoundingClientRect();
+    const cellRect = cell.getBoundingClientRect();
+    const cx = cellRect.left - gridRect.left + cellRect.width/2;
+    const cy = cellRect.top - gridRect.top + cellRect.height/2;
+    const puff = document.createElement('div');
+    puff.className = 'etch-smoke';
+    puff.style.left = cx+'px'; puff.style.top = cy+'px';
+    grid.appendChild(puff);
+    puff.animate([
+      { transform:'translate(-50%,-50%) scale(.35)', opacity:.5 },
+      { transform:'translate(-50%,-50%) scale(1.8)', opacity:0 }
+    ], { duration:360, easing:'ease-out' });
+    setTimeout(()=> puff.remove(), 380);
+    const n = 4 + Math.floor(Math.random()*3);
+    for(let i=0;i<n;i++){
+      const ang = Math.random()*Math.PI*2;
+      const dist = 8+Math.random()*14;
+      const size = 3+Math.random()*3;
+      const p = document.createElement('div');
+      p.className = 'etch-spark';
+      p.style.width = p.style.height = size+'px';
+      p.style.left = cx+'px'; p.style.top = cy+'px';
+      grid.appendChild(p);
+      const dx = Math.cos(ang)*dist, dy = Math.sin(ang)*dist - 4;
+      p.animate([
+        { transform:'translate(-50%,-50%) scale(1)', opacity:1 },
+        { transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.2)`, opacity:0 }
+      ], { duration:280+Math.random()*100, easing:'ease-out' });
+      setTimeout(()=> p.remove(), 400);
     }
   }
   function fail(el){
