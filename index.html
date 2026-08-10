@@ -376,7 +376,8 @@ body{
 .thermo-svg{width:100%;height:auto;display:block;}
 
 /* stage3 photo exposure */
-.uv-stage{flex:1;margin:14px;display:flex;align-items:center;justify-content:center;min-height:160px;}
+.uv-stage{flex:1;margin:14px;display:flex;align-items:center;justify-content:center;min-height:160px;touch-action:none;}
+#ph-slider{touch-action:none;}
 .uv-svg{width:100%;max-width:320px;height:auto;}
 #ph-btn{touch-action:none;user-select:none;}
 
@@ -1103,7 +1104,7 @@ document.addEventListener('pointerdown', function unlockTitleAmbience(){
 // worked around this locally with an explicit touchmove preventDefault; apply the same
 // fix globally to every drag surface so scrolling never hijacks a drag anywhere.
 document.addEventListener('touchmove', function(e){
-  if(e.target.closest('.slice-area, .ionz-area, .etch2-grid, .oneline-area, .belt-wrap, #ph-btn, #pkg-seal-btn, [style*="touch-action:none"]')){
+  if(e.target.closest('.slice-area, .ionz-area, .etch2-grid, .oneline-area, .belt-wrap, .uv-stage, #ph-slider, #ph-btn, #pkg-seal-btn, [style*="touch-action:none"]')){
     if(e.cancelable) e.preventDefault();
   }
 }, { passive:false });
