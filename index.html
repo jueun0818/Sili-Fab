@@ -27,10 +27,10 @@
   --line:#ffc9dd;
   --accent:#2f6fed;
   --accent2:#0ea5e9;
-  --gold:#0284c7;
+  --gold:#b45309;
   --good:#16a34a;
   --bad:#e11d48;
-  --warn:#3b82f6;
+  --warn:#d9720d;
   --text:#341530;
   --text-dim:#9c7089;
   --ink:#0a1120;
@@ -95,7 +95,7 @@ body{
   box-shadow:none;
 }
 .btn.ghost:active{transform:translateY(2px);}
-.btn.warn{background:linear-gradient(180deg,var(--warn),#2758b8);box-shadow:0 4px 0 #16306e,0 8px 16px rgba(0,0,0,.35);}
+.btn.warn{background:linear-gradient(180deg,var(--warn),#ad5a0a);box-shadow:0 4px 0 #6b3805,0 8px 16px rgba(0,0,0,.35);}
 .btn:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.5);}
 .btn-row{display:flex;gap:10px;flex-wrap:wrap;}
 
@@ -199,12 +199,22 @@ body{
 .stage-node.locked{opacity:.45;cursor:not-allowed;filter:grayscale(.6);}
 .stage-node.locked:hover{transform:none;}
 .stage-node.done{border-color:var(--good);}
+.stage-node.current{
+  border-color:var(--node-color, var(--accent));
+  animation:nodeCurrentPulse 1.8s ease infinite;
+}
+@keyframes nodeCurrentPulse{
+  0%,100%{box-shadow:0 0 0 0 var(--node-color, var(--accent));}
+  50%{box-shadow:0 0 16px 3px var(--node-color, var(--accent));}
+}
+.stage-node.current .stars{color:var(--node-color, var(--accent));font-size:23px;font-weight:900;}
 .stage-node .icon-wrap{
   width:56px;height:56px;flex:0 0 auto;
   border-radius:12px;
   background:rgba(56,189,248,.08);
   display:flex;align-items:center;justify-content:center;
   border:1px solid var(--line);
+  transition:background .15s ease, border-color .15s ease;
 }
 .stage-node .info{flex:1;min-width:0;}
 .stage-node .info .num{font-size:13px;color:var(--accent);letter-spacing:1px;}
@@ -362,7 +372,7 @@ body{
 .ingot-row{display:flex;justify-content:center;gap:6px;margin-top:14px;flex-wrap:wrap;}
 .ingot-slice{width:26px;height:26px;border-radius:50%;background:#334;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12.5px;}
 .ingot-slice.good{background:var(--good);border-color:#1f9e56;}
-.ingot-slice.mid{background:var(--warn);border-color:#2f5fc4;}
+.ingot-slice.mid{background:var(--warn);border-color:#a35709;}
 .ingot-slice.bad{background:var(--bad);border-color:#a83140;}
 .ingot-slice.pop{animation:slicePop .3s ease;}
 @keyframes slicePop{0%{transform:scale(0);}60%{transform:scale(1.25);}100%{transform:scale(1);}}
@@ -814,10 +824,12 @@ function renderMap(){
     if(state.scores[i]!==null) cleared++;
     const locked = !state.unlocked[i];
     const done = state.scores[i]!==null;
+    const current = !locked && !done;
     const node = document.createElement('div');
-    node.className = 'stage-node' + (locked?' locked':'') + (done?' done':'');
+    node.className = 'stage-node' + (locked?' locked':'') + (done?' done':'') + (current?' current':'');
+    node.style.setProperty('--node-color', st.color);
     node.innerHTML = `
-      <div class="icon-wrap">${stageIconSVG(st.icon, st.color)}</div>
+      <div class="icon-wrap" style="background:${st.color}1f;border-color:${st.color}66;">${stageIconSVG(st.icon, st.color)}</div>
       <div class="info">
         <div class="num">STAGE ${i+1}</div>
         <div class="name">${st.name}</div>
@@ -1322,14 +1334,14 @@ function computeFinalYield(){
 function renderFinal(){
   const scores = state.scores;
   const yieldPct = computeFinalYield();
-  let grade, remark;
-  if(yieldPct>=90){ grade='A'; remark='최우수! 완벽에 가까운 공정 관리예요 🏆'; }
-  else if(yieldPct>=78){ grade='B'; remark='우수한 품질! 안정적으로 양산할 수 있어요 👍'; }
-  else if(yieldPct>=63){ grade='C'; remark='무난한 수준이에요. 몇몇 공정을 더 다듬어보세요 🙂'; }
-  else if(yieldPct>=45){ grade='D'; remark='아쉬운 수율... 공정 곳곳에 오차가 있었어요 😅'; }
-  else { grade='F'; remark='재도전 필요! 공정 전체를 다시 점검해보세요 🔧'; }
+  let grade, remark, gradeColor;
+  if(yieldPct>=90){ grade='A'; remark='최우수! 완벽에 가까운 공정 관리예요 🏆'; gradeColor='var(--good)'; }
+  else if(yieldPct>=78){ grade='B'; remark='우수한 품질! 안정적으로 양산할 수 있어요 👍'; gradeColor='var(--good)'; }
+  else if(yieldPct>=63){ grade='C'; remark='무난한 수준이에요. 몇몇 공정을 더 다듬어보세요 🙂'; gradeColor='var(--gold)'; }
+  else if(yieldPct>=45){ grade='D'; remark='아쉬운 수율... 공정 곳곳에 오차가 있었어요 😅'; gradeColor='var(--warn)'; }
+  else { grade='F'; remark='재도전 필요! 공정 전체를 다시 점검해보세요 🔧'; gradeColor='var(--bad)'; }
   document.getElementById('final-yield-num').innerHTML = `${yieldPct}<span style="font-size:26px;">%</span>`;
-  document.getElementById('final-grade').innerHTML = `${grade}등급 <span style="font-size:14px;color:var(--text-dim);font-weight:500;">— ${remark}</span>`;
+  document.getElementById('final-grade').innerHTML = `<span style="color:${gradeColor};">${grade}등급</span> <span style="font-size:14px;color:var(--text-dim);font-weight:500;">— ${remark}</span>`;
   document.getElementById('final-total').textContent = `최종 수율 ${yieldPct}% · 8/8 공정 완료`;
   document.getElementById('final-list').innerHTML = STAGES.map((st,i)=>
     `<div><b>${i+1}. ${st.name}</b> — ${scores[i]===null?'-':scores[i]+'점 '+starsFor(scores[i])}</div>`
