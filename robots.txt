@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://silifab.vercel.app/sitemap.xml
