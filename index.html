@@ -1401,6 +1401,16 @@ STAGE_GAMES.wafer = function(container, onFinish, ctx){
 
   let swiping=false, sx=0, sy=0;
 
+  let discBase=null, discInner=null, discRing=null;
+  function ensureDiscEls(){
+    svg.innerHTML = `
+      <circle fill="#c7ddff" stroke="var(--line)" stroke-width="2"/>
+      <circle fill="none" stroke="#5b9bf5" stroke-width="1.5" opacity=".6"/>
+      <circle fill="none" stroke="var(--warn)" stroke-width="3"/>
+    `;
+    const c = svg.querySelectorAll('circle');
+    discBase = c[0]; discInner = c[1]; discRing = c[2];
+  }
   function spawnDisc(){
     infoEl.textContent = `라운드 ${round+1} / ${ROUNDS}`;
     discR = Math.max(36, 52 - round*3);
@@ -1408,20 +1418,25 @@ STAGE_GAMES.wafer = function(container, onFinish, ctx){
     const x = discR+10 + Math.random()*(r.width-2*(discR+10));
     const y = discR+10 + Math.random()*(r.height-2*(discR+10));
     discEl = { x, y, born: performance.now(), sliced:false };
+    ensureDiscEls();
     render();
     ringRaf = requestAnimationFrame(ringTick);
   }
+  // updates existing node attributes instead of rebuilding the SVG from a
+  // string every frame — innerHTML re-parsing here was heavy enough (called
+  // up to 60x/sec while the ring counts down) to visibly stutter on mobile.
   function render(){
-    if(!discEl) { svg.innerHTML=''; return; }
+    if(!discEl || !discBase) return;
     const age = performance.now()-discEl.born;
     const p = Math.max(0, 1-age/LIFE_MS);
-    svg.innerHTML = `
-      <circle cx="${discEl.x}" cy="${discEl.y}" r="${discR}" fill="#c7ddff" stroke="var(--line)" stroke-width="2"/>
-      <circle cx="${discEl.x}" cy="${discEl.y}" r="${discR-6}" fill="none" stroke="#5b9bf5" stroke-width="1.5" opacity=".6"/>
-      <circle cx="${discEl.x}" cy="${discEl.y}" r="${discR+6}" fill="none" stroke="var(--warn)" stroke-width="3"
-        stroke-dasharray="${2*Math.PI*(discR+6)}" stroke-dashoffset="${2*Math.PI*(discR+6)*(1-p)}"
-        transform="rotate(-90 ${discEl.x} ${discEl.y})"/>
-    `;
+    const ringR = discR+6;
+    const C = 2*Math.PI*ringR;
+    discBase.setAttribute('cx', discEl.x); discBase.setAttribute('cy', discEl.y); discBase.setAttribute('r', discR);
+    discInner.setAttribute('cx', discEl.x); discInner.setAttribute('cy', discEl.y); discInner.setAttribute('r', discR-6);
+    discRing.setAttribute('cx', discEl.x); discRing.setAttribute('cy', discEl.y); discRing.setAttribute('r', ringR);
+    discRing.setAttribute('stroke-dasharray', C);
+    discRing.setAttribute('stroke-dashoffset', C*(1-p));
+    discRing.setAttribute('transform', `rotate(-90 ${discEl.x} ${discEl.y})`);
   }
   function ringTick(now){
     if(!running || !discEl) return;
