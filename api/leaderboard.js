@@ -92,6 +92,17 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    if (req.method === 'DELETE') {
+      // one-off cleanup helper: DELETE /api/leaderboard?ts=<entry ts> removes a single
+      // mis-encoded/junk entry. TEMPORARY — remove this block after use.
+      const ts = Number((req.query && req.query.ts) || new URL(req.url, 'http://x').searchParams.get('ts'));
+      const entries = await loadEntries();
+      const next = entries.filter((e) => e.ts !== ts);
+      await kv(['SET', KEY, JSON.stringify(next)]);
+      res.status(200).json({ ok: true, removed: entries.length - next.length, total: next.length });
+      return;
+    }
+
     res.status(405).json({ error: 'method_not_allowed' });
   } catch (err) {
     res.status(500).json({ error: 'server_error' });
