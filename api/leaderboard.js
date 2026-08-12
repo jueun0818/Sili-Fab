@@ -1,7 +1,9 @@
-// Global leaderboard, backed by Vercel KV (Upstash Redis REST API).
-// Requires KV_REST_API_URL / KV_REST_API_TOKEN env vars — set automatically
-// once a KV database is created and linked to this project in the Vercel
-// dashboard (Storage tab). Until then this endpoint responds with 503 so the
+// Global leaderboard, backed by an Upstash Redis REST API.
+// Requires a REST URL + token env var pair — set automatically once a Redis
+// database (via the Upstash marketplace integration, or the older Vercel KV
+// product) is created and linked to this project in the Vercel dashboard
+// (Storage tab). Different integrations name the pair differently, so we
+// accept either. Until one is linked this endpoint responds with 503 so the
 // client can show a friendly "not ready yet" message instead of crashing.
 
 const KEY = 'sili_fab_leaderboard_v1';
@@ -9,9 +11,14 @@ const MAX_ENTRIES = 200;
 const TOP_N = 50;
 const GRADES = new Set(['A', 'B', 'C', 'D', 'F']);
 
+function getKvCredentials() {
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  return { url, token };
+}
+
 async function kv(command) {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
+  const { url, token } = getKvCredentials();
   if (!url || !token) return null;
   const res = await fetch(url, {
     method: 'POST',
@@ -45,7 +52,8 @@ function sanitizeName(name) {
 }
 
 module.exports = async function handler(req, res) {
-  if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+  const { url: kvUrl, token: kvToken } = getKvCredentials();
+  if (!kvUrl || !kvToken) {
     res.status(503).json({ error: 'leaderboard_not_configured' });
     return;
   }
