@@ -458,6 +458,23 @@ body{
 .etch-spark{position:absolute;border-radius:50%;background:radial-gradient(circle,#eaf3ff 0%,var(--accent2) 60%,transparent 100%);pointer-events:none;z-index:6;}
 .etch-smoke{position:absolute;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.9) 0%,rgba(200,222,255,.5) 55%,transparent 75%);pointer-events:none;z-index:5;filter:blur(1px);}
 
+/* ---------- extra minigame: chip memory match ---------- */
+.mem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px auto;padding:0 16px;max-width:340px;width:100%;}
+.mem-card{
+  aspect-ratio:1;border-radius:10px;cursor:pointer;position:relative;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--accent),#1e4fc4);
+  box-shadow:0 3px 0 #163a92, 0 4px 8px rgba(0,0,0,.25);
+}
+.mem-card .mem-back-dot{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.35);}
+.mem-card.flipped{background:#fff;border:2px solid var(--line);box-shadow:0 2px 4px rgba(0,0,0,.12);}
+.mem-card.matched{background:linear-gradient(135deg,#e9fbf0,#d3f5df);border:2px solid var(--good);box-shadow:none;cursor:default;}
+.mem-card svg{width:60%;height:60%;}
+.mem-card.flipping{animation:memFlip .3s ease;}
+@keyframes memFlip{0%{transform:scaleX(1);}50%{transform:scaleX(.05);}100%{transform:scaleX(1);}}
+.mem-card.mismatch{animation:memShake .3s ease;}
+@keyframes memShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-4px);}75%{transform:translateX(4px);}}
+
 
 /* stage6 wiring */
 .wire-area{position:relative;flex:1;margin:14px;}
@@ -684,7 +701,7 @@ body.pwa-banner-open #btn-game-sound{
         <button class="btn ghost" id="btn-open-achievements" style="flex:1;">🏆 업적</button>
         <button class="btn ghost" id="btn-open-ranking" style="flex:1;">🌐 랭킹</button>
       </div>
-      <button class="btn ghost" id="btn-open-cmp">🪞 스페셜 미니게임: CMP 연마</button>
+      <button class="btn ghost" id="btn-open-mem">🃏 스페셜 미니게임: 칩 짝맞추기</button>
     </div>
     <div class="spacer"></div>
     <div class="title-foot">고1 진로/과학 수업용 · 8개 공정을 순서대로 클리어해보세요</div>
@@ -763,19 +780,16 @@ body.pwa-banner-open #btn-game-sound{
     <div class="rank-list" id="rank-list"></div>
   </section>
 
-  <!-- ============ EXTRA MINIGAME: CMP POLISHING ============ -->
-  <section id="screen-cmp" class="screen">
+  <!-- ============ EXTRA MINIGAME: CHIP MEMORY MATCH ============ -->
+  <section id="screen-memory" class="screen">
     <div class="game-hud">
-      <button class="btn ghost" id="btn-cmp-back" style="padding:6px 10px;font-size:14px;">◀</button>
-      <div class="title pixel" style="font-size:14px;">🪞 CMP 연마 챌린지</div>
-      <button class="btn ghost snd-toggle" id="btn-cmp-sound" style="padding:6px 10px;font-size:14px;margin-left:auto;">🔊</button>
-      <div class="timer" id="cmp-timer"><span id="cmp-timer-text">--</span></div>
+      <button class="btn ghost" id="btn-mem-back" style="padding:6px 10px;font-size:14px;">◀</button>
+      <div class="title pixel" style="font-size:14px;">🃏 칩 짝맞추기</div>
+      <button class="btn ghost snd-toggle" id="btn-mem-sound" style="padding:6px 10px;font-size:14px;margin-left:auto;">🔊</button>
+      <div class="timer" id="mem-moves"><span id="mem-moves-text">0회</span></div>
     </div>
-    <div class="timer-bar-track" id="cmp-timer-bar-track">
-      <div class="timer-bar-fill" id="cmp-timer-bar-fill"></div>
-    </div>
-    <div class="game-stage-area" id="cmp-stage-area"></div>
-    <div class="game-footer-hint" id="cmp-hint">목표 압력대를 계속 따라가며 표면을 매끈하게 다듬으세요!</div>
+    <div class="game-stage-area" id="mem-stage-area"></div>
+    <div class="game-footer-hint" id="mem-hint">같은 공정 아이콘 카드 두 장을 찾아 짝을 맞추세요!</div>
   </section>
 
   <div class="modal-backdrop hidden" id="modal-backdrop">
@@ -1694,216 +1708,176 @@ document.getElementById('btn-rank-back').addEventListener('click', ()=> showScre
 document.getElementById('btn-rank-refresh').addEventListener('click', loadRanking);
 
 /* ============================================================
-   7.7 EXTRA MINIGAME: CMP (Chemical-Mechanical Polishing) Challenge
+   7.7 EXTRA MINIGAME: Chip Memory Match
    Standalone — not part of the 8-stage story, has its own local
    best-score record instead of feeding into state.scores/ranking.
+   Reuses each STAGES[i]'s icon+color as the 8 matching pairs.
    ============================================================ */
-const CMP_DURATION = 16;
-const CMP_BEST_KEY = 'sili_fab_cmp_best';
-const cmpArea = document.getElementById('cmp-stage-area');
-const cmpTimerText = document.getElementById('cmp-timer-text');
-const cmpTimerEl = document.getElementById('cmp-timer');
-const cmpTimerBarTrack = document.getElementById('cmp-timer-bar-track');
-const cmpTimerBarFill = document.getElementById('cmp-timer-bar-fill');
-let cmpCleanup = null;
+const MEM_BEST_KEY = 'sili_fab_memory_best';
+const memArea = document.getElementById('mem-stage-area');
+const memMovesText = document.getElementById('mem-moves-text');
 
-function getCmpBest(){ try{ return parseInt(localStorage.getItem(CMP_BEST_KEY)||'0',10)||0; }catch(e){ return 0; } }
-function setCmpBest(v){ try{ localStorage.setItem(CMP_BEST_KEY, String(v)); }catch(e){} }
+function getMemBest(){ try{ return parseInt(localStorage.getItem(MEM_BEST_KEY)||'0',10)||0; }catch(e){ return 0; } }
+function setMemBest(v){ try{ localStorage.setItem(MEM_BEST_KEY, String(v)); }catch(e){} }
 
-function cmpSetTimer(remain, total){
-  const clamped = Math.max(0, remain);
-  cmpTimerText.textContent = clamped.toFixed(1)+'s';
-  const pct = Math.max(0, Math.min(1, clamped/total));
-  cmpTimerBarFill.style.width = (pct*100)+'%';
-  const danger = pct <= 0.25;
-  cmpTimerEl.classList.toggle('timer-danger', danger);
-  cmpTimerBarTrack.classList.toggle('timer-danger', danger);
+function shuffleDeck(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  }
+  return arr;
 }
 
-function renderCmpIntro(){
-  if(cmpCleanup){ try{ cmpCleanup(); }catch(e){} cmpCleanup=null; }
-  cmpArea.innerHTML = '';
-  cmpSetTimer(CMP_DURATION, CMP_DURATION);
-  const best = getCmpBest();
+function renderMemIntro(){
+  memArea.innerHTML = '';
+  memMovesText.textContent = '0회';
+  const best = getMemBest();
   const ov = document.createElement('div');
   ov.className = 'stage-overlay ready-overlay';
   ov.innerHTML = `
     <div class="spacer"></div>
-    <div class="ready-icon" style="font-size:60px;text-align:center;line-height:1;">🪞</div>
-    <h2 style="text-align:center;margin:10px 0 0;font-size:20px;">CMP 연마 챌린지</h2>
+    <div class="ready-icon" style="font-size:60px;text-align:center;line-height:1;">🃏</div>
+    <h2 style="text-align:center;margin:10px 0 0;font-size:20px;">칩 짝맞추기</h2>
     <div class="rules-card">
-      <div class="rules-title">🔬 CMP(화학적 기계 연마) 공정이란?</div>
-      <div class="rules-text">여러 층을 쌓다 보면 웨이퍼 표면이 울퉁불퉁해져요. 연마 패드를 미는 압력이 너무 세면 깎여나가고 너무 약하면 울퉁불퉁함이 안 사라져요. 목표 압력대가 계속 흔들리니 손가락으로 계속 따라가며 그 안에 머물러야 해요!</div>
+      <div class="rules-title">🔬 8대 공정 카드를 기억하세요!</div>
+      <div class="rules-text">카드 16장 뒤에 8대 공정 아이콘이 두 장씩 숨어있어요. 두 장을 뒤집어서 같은 공정이면 짝이 맞고, 다르면 다시 뒤집혀요. 최소한의 시도로 8쌍을 모두 맞춰보세요!</div>
     </div>
-    <div class="section-label" style="text-align:center;">🏅 내 최고 기록: ${best}점</div>
+    <div class="section-label" style="text-align:center;">🏅 내 최고 점수: ${best}점</div>
     <div class="spacer"></div>
     <div class="btn-row">
-      <button class="btn ghost" id="cmp-back">◀ 그만하기</button>
-      <button class="btn" id="cmp-start" style="flex:1;">🪞 연마 시작!</button>
+      <button class="btn ghost" id="mem-back">◀ 그만하기</button>
+      <button class="btn" id="mem-start" style="flex:1;">🃏 게임 시작!</button>
     </div>
   `;
-  cmpArea.appendChild(ov);
-  ov.querySelector('#cmp-back').addEventListener('click', ()=>{
+  memArea.appendChild(ov);
+  ov.querySelector('#mem-back').addEventListener('click', ()=>{
     stopAmbience();
     showScreen('screen-title');
   });
-  ov.querySelector('#cmp-start').addEventListener('click', ()=>{
+  ov.querySelector('#mem-start').addEventListener('click', ()=>{
     ov.remove();
-    startCmpGame();
+    startMemGame();
   });
 }
 
-function startCmpGame(){
-  cmpArea.innerHTML = '';
-  let running = true, raf = null;
-  const t0 = performance.now();
-  let lastTick = t0, value = 50, flatness = 30, dragging = false, sparkCooldown = 0;
+function startMemGame(){
+  memArea.innerHTML = '';
+  let moves = 0, matchedCount = 0, busy = false, first = null, second = null;
+  memMovesText.textContent = '0회';
+
+  const deck = shuffleDeck(STAGES.flatMap(st=>[
+    { icon: st.icon, color: st.color, key: st.key },
+    { icon: st.icon, color: st.color, key: st.key }
+  ]));
 
   const wrap = document.createElement('div');
   wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.flex='1';
   wrap.innerHTML = `
-    <div style="text-align:center;padding:8px 16px 0;font-size:15.5px;color:var(--text-dim);">목표 압력대(색 구간)를 계속 <b style="color:var(--gold)">손가락으로 따라가며</b> 표면을 매끈하게 다듬으세요!</div>
-    <div class="uv-stage" id="cmp-stage" style="min-height:190px;">
-      <svg class="uv-svg" id="cmp-svg" viewBox="0 0 300 150">
-        <rect x="16" y="18" width="268" height="20" rx="10" fill="#f3f7ff" stroke="var(--line)" stroke-width="2"/>
-        <rect id="cmp-flat-fill" x="18" y="20" width="0" height="16" rx="8" fill="var(--good)"/>
-        <text x="150" y="55" text-anchor="middle" font-size="11" fill="var(--text-dim)" font-weight="700">평탄도</text>
-        <rect x="20" y="90" width="260" height="26" rx="13" fill="#eef2fb" stroke="var(--line)" stroke-width="2"/>
-        <rect id="cmp-target" x="0" y="90" width="46" height="26" rx="13" fill="rgba(180,83,9,.28)" stroke="var(--gold)" stroke-width="2"/>
-        <circle id="cmp-handle" cx="150" cy="103" r="15" fill="var(--accent)" stroke="#fff" stroke-width="3"/>
-      </svg>
-    </div>
-    <div class="center" id="cmp-state" style="font-size:14.5px;font-weight:700;color:var(--text-dim);min-height:18px;">압력을 목표 구간에 맞추세요</div>
+    <div style="text-align:center;padding:8px 16px 0;font-size:15.5px;color:var(--text-dim);">카드 두 장을 <b style="color:var(--gold)">뒤집어</b> 같은 공정끼리 짝을 맞추세요!</div>
+    <div class="mem-grid" id="mem-grid"></div>
   `;
-  cmpArea.appendChild(wrap);
-  const svgEl = wrap.querySelector('#cmp-svg');
-  const trackArea = wrap.querySelector('#cmp-stage');
-  const handle = wrap.querySelector('#cmp-handle');
-  const targetEl = wrap.querySelector('#cmp-target');
-  const flatFill = wrap.querySelector('#cmp-flat-fill');
-  const stateEl = wrap.querySelector('#cmp-state');
+  memArea.appendChild(wrap);
+  const grid = wrap.querySelector('#mem-grid');
 
-  const TRACK_X0 = 20, TRACK_W = 260;
-  function pctToX(pct){ return TRACK_X0 + (pct/100)*TRACK_W; }
-  function toSvgX(clientX){
-    const pt = svgEl.createSVGPoint();
-    pt.x = clientX; pt.y = 0;
-    return pt.matrixTransform(svgEl.getScreenCTM().inverse()).x;
-  }
-  function updateFromClientX(clientX){
-    const x = toSvgX(clientX);
-    const pct = ((x - TRACK_X0) / TRACK_W) * 100;
-    value = Math.max(0, Math.min(100, pct));
-  }
-  function onDown(e){ if(!running) return; dragging = true; updateFromClientX(e.clientX); }
-  function onMove(e){ if(!dragging || !running) return; updateFromClientX(e.clientX); }
-  function onUp(){ dragging = false; }
-  trackArea.addEventListener('pointerdown', onDown);
-  window.addEventListener('pointermove', onMove);
-  window.addEventListener('pointerup', onUp);
+  function showFace(el, card){ el.innerHTML = stageIconSVG(card.icon, card.color); }
+  function showBack(el){ el.innerHTML = `<div class="mem-back-dot"></div>`; }
 
-  function spark(x,y){
-    for(let i=0;i<3;i++){
-      const ang = Math.random()*Math.PI*2;
-      const p = document.createElementNS('http://www.w3.org/2000/svg','circle');
-      p.setAttribute('cx',x); p.setAttribute('cy',y); p.setAttribute('r','2'); p.setAttribute('fill','var(--good)');
-      svgEl.appendChild(p);
-      const dist = 10+Math.random()*10;
-      const dx = Math.cos(ang)*dist, dy = Math.sin(ang)*dist;
-      p.animate([{transform:'translate(0,0)',opacity:1},{transform:`translate(${dx}px,${dy}px)`,opacity:0}], {duration:280,easing:'ease-out'});
-      setTimeout(()=>p.remove(), 300);
+  function onCardClick(el, card){
+    if(busy || el.classList.contains('flipped') || el.classList.contains('matched')) return;
+    ensureAudio();
+    if(audioCtx){ const t=audioCtx.currentTime; playTone(600, t, 0.05, 'square', 0.08); }
+    el.classList.add('flipped','flipping');
+    setTimeout(()=> showFace(el, card), 150);
+    setTimeout(()=> el.classList.remove('flipping'), 300);
+
+    if(!first){ first = { el, card }; return; }
+    second = { el, card };
+    moves++;
+    memMovesText.textContent = moves+'회';
+    busy = true;
+
+    if(first.card.key === second.card.key){
+      setTimeout(()=>{
+        first.el.classList.add('matched');
+        second.el.classList.add('matched');
+        playAchievementSound();
+        matchedCount++;
+        first = null; second = null; busy = false;
+        if(matchedCount>=8) finish(moves);
+      }, 320);
+    } else {
+      setTimeout(()=>{
+        first.el.classList.add('mismatch');
+        second.el.classList.add('mismatch');
+        playDangerBeep();
+        setTimeout(()=>{
+          showBack(first.el); showBack(second.el);
+          first.el.classList.remove('flipped','mismatch');
+          second.el.classList.remove('flipped','mismatch');
+          first = null; second = null; busy = false;
+        }, 380);
+      }, 500);
     }
   }
 
-  function tick(now){
-    if(!running) return;
-    const dt = (now-lastTick)/1000; lastTick = now;
-    const elapsed = (now-t0)/1000;
-    const remain = CMP_DURATION - elapsed;
-    cmpSetTimer(remain, CMP_DURATION);
-    if(remain<=0){ finish(); return; }
+  deck.forEach((card)=>{
+    const el = document.createElement('div');
+    el.className = 'mem-card';
+    el.innerHTML = `<div class="mem-back-dot"></div>`;
+    el.dataset.key = card.key;
+    el.addEventListener('click', ()=> onCardClick(el, card));
+    grid.appendChild(el);
+  });
 
-    const centerPct = Math.max(12, Math.min(88, 50 + 30*Math.sin(elapsed*0.42) + 9*Math.sin(elapsed*1.15+1.4)));
-    const bandHalf = 9;
-    const inBand = Math.abs(value - centerPct) <= bandHalf;
-    flatness = Math.max(0, Math.min(100, flatness + (inBand ? dt*15 : -dt*20)));
-
-    targetEl.setAttribute('x', pctToX(centerPct-bandHalf));
-    targetEl.setAttribute('width', (bandHalf*2/100)*TRACK_W);
-    handle.setAttribute('cx', pctToX(value));
-    handle.setAttribute('fill', inBand ? 'var(--good)' : 'var(--warn)');
-    flatFill.setAttribute('width', (flatness/100)*260);
-    flatFill.setAttribute('fill', flatness>=70?'var(--good)':flatness>=35?'var(--gold)':'var(--bad)');
-    stateEl.textContent = inBand ? '✨ 완벽하게 연마 중!' : '⚠️ 목표 구간을 벗어났어요';
-    stateEl.style.color = inBand ? 'var(--good)' : 'var(--bad)';
-
-    sparkCooldown -= dt;
-    if(inBand && sparkCooldown<=0){ spark(pctToX(value), 103); sparkCooldown = 0.12; }
-
-    raf = requestAnimationFrame(tick);
+  function finish(finalMoves){
+    const score = Math.max(10, Math.round(100 - (finalMoves-8)*5.5));
+    setTimeout(()=> renderMemResult(score, finalMoves), 500);
   }
-  raf = requestAnimationFrame(tick);
-
-  function finish(){
-    running = false;
-    if(raf) cancelAnimationFrame(raf);
-    const score = Math.round(flatness);
-    setTimeout(()=> renderCmpResult(score), 400);
-  }
-
-  cmpCleanup = function cleanup(){
-    running = false;
-    if(raf) cancelAnimationFrame(raf);
-    window.removeEventListener('pointermove', onMove);
-    window.removeEventListener('pointerup', onUp);
-  };
 }
 
-function renderCmpResult(score){
-  if(cmpCleanup){ try{ cmpCleanup(); }catch(e){} cmpCleanup=null; }
-  const best = getCmpBest();
+function renderMemResult(score, moves){
+  const best = getMemBest();
   const isNewBest = score > best;
-  if(isNewBest) setCmpBest(score);
-  cmpArea.innerHTML = '';
+  if(isNewBest) setMemBest(score);
+  memArea.innerHTML = '';
   const ov = document.createElement('div');
   ov.className = 'stage-overlay';
   ov.innerHTML = `
     <div class="spacer"></div>
     <div class="result-hero">
-      <div class="badge">${isNewBest ? '🎉 신기록!' : 'CMP 연마 완료'}</div>
+      <div class="badge">${isNewBest ? '🎉 신기록!' : '짝맞추기 완료'}</div>
       <div class="result-stars">${starsFor(score)}</div>
       <div class="result-score">${score}<span style="font-size:20px;"> 점</span></div>
     </div>
     <div class="rules-card">
-      <div class="rules-title">🏅 내 최고 기록</div>
-      <div class="rules-text">${isNewBest ? score : best}점${isNewBest ? ' — 방금 갱신했어요!' : ''}</div>
+      <div class="rules-title">📋 결과</div>
+      <div class="rules-text">${moves}회 만에 8쌍을 모두 맞췄어요.<br>🏅 내 최고 점수: ${isNewBest ? score : best}점${isNewBest ? ' — 방금 갱신했어요!' : ''}</div>
     </div>
     <div class="spacer"></div>
     <div class="btn-row">
-      <button class="btn ghost" id="cmp-result-back">◀ 처음으로</button>
-      <button class="btn" id="cmp-retry" style="flex:1;">🔁 다시 도전</button>
+      <button class="btn ghost" id="mem-result-back">◀ 처음으로</button>
+      <button class="btn" id="mem-retry" style="flex:1;">🔁 다시 도전</button>
     </div>
   `;
-  cmpArea.appendChild(ov);
+  memArea.appendChild(ov);
   if(isNewBest) playSuccessChime(0);
-  ov.querySelector('#cmp-result-back').addEventListener('click', ()=>{
+  ov.querySelector('#mem-result-back').addEventListener('click', ()=>{
     stopAmbience();
     showScreen('screen-title');
   });
-  ov.querySelector('#cmp-retry').addEventListener('click', ()=>{
+  ov.querySelector('#mem-retry').addEventListener('click', ()=>{
     ov.remove();
-    startCmpGame();
+    startMemGame();
   });
 }
 
-document.getElementById('btn-open-cmp').addEventListener('click', ()=>{
+document.getElementById('btn-open-mem').addEventListener('click', ()=>{
   ensureAudio();
-  startAmbience(2);
-  showScreen('screen-cmp');
-  renderCmpIntro();
+  startAmbience(4);
+  showScreen('screen-memory');
+  renderMemIntro();
 });
-document.getElementById('btn-cmp-back').addEventListener('click', ()=>{
-  if(cmpCleanup){ try{ cmpCleanup(); }catch(e){} cmpCleanup=null; }
+document.getElementById('btn-mem-back').addEventListener('click', ()=>{
   stopAmbience();
   showScreen('screen-title');
 });
