@@ -560,6 +560,72 @@ body.pwa-banner-open #btn-game-sound{
   transform:translateY(-78px);
   transition:transform .3s cubic-bezier(.2,.9,.3,1);
 }
+
+/* ---------- achievement unlock toast ---------- */
+.ach-toast{
+  position:fixed; top:14px; left:50%; z-index:300;
+  transform:translateX(-50%) translateY(-160%);
+  display:flex; align-items:center; gap:10px;
+  background:linear-gradient(135deg,#fff8e8,#ffedc7);
+  border:2px solid var(--gold);
+  border-radius:14px;
+  padding:10px 18px 10px 12px;
+  box-shadow:0 8px 20px rgba(0,0,0,.25);
+  transition:transform .35s cubic-bezier(.2,.9,.3,1);
+  max-width:min(320px,88vw);
+  pointer-events:none;
+}
+.ach-toast.show{transform:translateX(-50%) translateY(0);}
+.ach-toast-icon{font-size:26px;flex:none;}
+.ach-toast-label{font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.5px;}
+.ach-toast-name{font-size:15px;font-weight:900;color:var(--text);}
+
+/* ---------- achievements screen ---------- */
+.ach-list{padding:4px 2px 20px;}
+.ach-card{
+  display:flex; align-items:center; gap:14px;
+  padding:14px; border-radius:16px; border:2px solid var(--line);
+  background:linear-gradient(180deg,var(--panel),var(--panel2));
+  margin-bottom:12px;
+}
+.ach-card.locked{opacity:.5; filter:grayscale(.6);}
+.ach-card.unlocked{border-color:var(--gold);}
+.ach-card .ach-icon{
+  width:52px;height:52px;flex:0 0 auto;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+  background:rgba(180,83,9,.08); border:1px solid var(--line);
+}
+.ach-card.unlocked .ach-icon{background:rgba(180,83,9,.16); border-color:var(--gold);}
+.ach-card .ach-info{flex:1;min-width:0;}
+.ach-card .ach-name{font-size:16px;font-weight:800;margin-bottom:2px;}
+.ach-card .ach-desc{font-size:13.5px;color:var(--text-dim);}
+.ach-card .ach-date{font-size:11.5px;color:var(--gold);margin-top:3px;font-weight:700;}
+
+/* ---------- ranking screen ---------- */
+.rank-status{text-align:center;color:var(--text-dim);font-size:14.5px;font-weight:700;padding:24px 16px;}
+.rank-list{padding:4px 2px 20px;}
+.rank-row{
+  display:flex; align-items:center; gap:12px;
+  padding:12px 14px; border-radius:14px; border:2px solid var(--line);
+  background:linear-gradient(180deg,var(--panel),var(--panel2));
+  margin-bottom:8px;
+}
+.rank-row.top1{border-color:#e0ab1c;}
+.rank-row.top2{border-color:#9aa5b1;}
+.rank-row.top3{border-color:#c9822f;}
+.rank-row .rank-num{width:30px;flex:none;text-align:center;font-size:15px;font-weight:900;color:var(--text-dim);}
+.rank-row.top1 .rank-num,.rank-row.top2 .rank-num,.rank-row.top3 .rank-num{font-size:20px;}
+.rank-row .rank-name{flex:1;min-width:0;font-size:15.5px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rank-row .rank-grade{font-size:12.5px;font-weight:800;padding:2px 8px;border-radius:999px;background:rgba(180,83,9,.12);color:var(--gold);flex:none;}
+.rank-row .rank-yield{font-size:16px;font-weight:900;color:var(--accent);flex:none;min-width:52px;text-align:right;}
+
+.rank-input{
+  flex:1; min-width:0;
+  padding:12px 14px; border-radius:10px; border:2px solid var(--line);
+  background:#fff; color:var(--text); font-family:inherit; font-size:15px; font-weight:600;
+  outline:none; transition:border-color .15s ease;
+}
+.rank-input:focus{border-color:var(--accent);}
 </style>
 </head>
 <body>
@@ -614,6 +680,10 @@ body.pwa-banner-open #btn-game-sound{
       <button class="btn" id="btn-start">🚀 공정 시작하기</button>
       <button class="btn ghost" id="btn-continue">이어하기</button>
       <button class="btn ghost" id="btn-reset">진행 초기화</button>
+      <div class="btn-row">
+        <button class="btn ghost" id="btn-open-achievements" style="flex:1;">🏆 업적</button>
+        <button class="btn ghost" id="btn-open-ranking" style="flex:1;">🌐 랭킹</button>
+      </div>
     </div>
     <div class="spacer"></div>
     <div class="title-foot">고1 진로/과학 수업용 · 8개 공정을 순서대로 클리어해보세요</div>
@@ -656,11 +726,40 @@ body.pwa-banner-open #btn-game-sound{
     </div>
     <div id="final-report"></div>
     <div class="cert-list" id="final-list"></div>
+    <div class="card" id="final-rank-submit" style="margin-top:14px;">
+      <div class="section-label" style="margin-top:0;">🌐 전체 랭킹에 등록하기</div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="rank-name-input" maxlength="12" placeholder="닉네임 (최대 12자)" class="rank-input">
+        <button class="btn" id="btn-rank-submit" style="flex:none;padding:12px 18px;">등록</button>
+      </div>
+      <div id="rank-submit-status" style="font-size:13px;color:var(--text-dim);margin-top:8px;min-height:16px;"></div>
+    </div>
     <div class="spacer"></div>
     <div class="btn-row">
       <button class="btn ghost" id="btn-final-map">공정 지도로</button>
       <button class="btn" id="btn-final-home" style="flex:1;">처음 화면으로</button>
     </div>
+  </section>
+
+  <!-- ============ ACHIEVEMENTS ============ -->
+  <section id="screen-achievements" class="screen">
+    <div class="map-header">
+      <button class="btn ghost" id="btn-ach-back" style="padding:8px 12px;font-size:15px;">◀ 뒤로</button>
+      <h1 class="pixel">업적</h1>
+      <div class="progress-pill" id="ach-progress">0 / 8</div>
+    </div>
+    <div class="ach-list" id="ach-list"></div>
+  </section>
+
+  <!-- ============ RANKING ============ -->
+  <section id="screen-ranking" class="screen">
+    <div class="map-header">
+      <button class="btn ghost" id="btn-rank-back" style="padding:8px 12px;font-size:15px;">◀ 뒤로</button>
+      <h1 class="pixel">전체 랭킹</h1>
+      <button class="btn ghost" id="btn-rank-refresh" style="padding:8px 12px;font-size:14px;">↻</button>
+    </div>
+    <div class="rank-status" id="rank-status">불러오는 중...</div>
+    <div class="rank-list" id="rank-list"></div>
   </section>
 
   <div class="modal-backdrop hidden" id="modal-backdrop">
@@ -673,6 +772,14 @@ body.pwa-banner-open #btn-game-sound{
     </div>
   </div>
 
+</div>
+
+<div class="ach-toast" id="ach-toast" role="status" aria-live="polite">
+  <div class="ach-toast-icon" id="ach-toast-icon">🏆</div>
+  <div class="ach-toast-text">
+    <div class="ach-toast-label">업적 달성!</div>
+    <div class="ach-toast-name" id="ach-toast-name">첫 발걸음</div>
+  </div>
 </div>
 
 <div class="pwa-banner" id="pwa-banner" role="status" aria-live="polite">
@@ -1131,6 +1238,12 @@ function playEtchSound(){
   noise.connect(nf); nf.connect(ng); ng.connect(masterGain);
   noise.start(t); noise.stop(t+0.06);
 }
+function playAchievementSound(){
+  if(!audioCtx) return;
+  const t = audioCtx.currentTime;
+  playTone(783.99, t, 0.14, 'triangle', 0.22);
+  playTone(1046.5, t+0.09, 0.24, 'triangle', 0.2);
+}
 document.querySelectorAll('.snd-toggle').forEach(b=>{
   b.textContent = muted?'🔇':'🔊';
   b.addEventListener('click', ()=>{ ensureAudio(); setMuted(!muted); });
@@ -1260,6 +1373,8 @@ function onStageComplete(i, rawScore, diag){
   if(i+1 < STAGES.length) state.unlocked[i+1] = true;
   saveState();
   playSuccessChime(i);
+  unlockAchievement('first_step');
+  if(score>=100) unlockAchievement('perfect_stage');
   renderCompleteOverlay(i, score);
 }
 
@@ -1348,6 +1463,9 @@ function renderFinal(){
   else if(yieldPct>=63){ grade='C'; remark='무난한 수준이에요. 몇몇 공정을 더 다듬어보세요 🙂'; gradeColor='var(--gold)'; }
   else if(yieldPct>=45){ grade='D'; remark='아쉬운 수율... 공정 곳곳에 오차가 있었어요 😅'; gradeColor='var(--warn)'; }
   else { grade='F'; remark='재도전 필요! 공정 전체를 다시 점검해보세요 🔧'; gradeColor='var(--bad)'; }
+  lastYieldPct = yieldPct; lastGrade = grade;
+  checkRunAchievements(yieldPct, grade);
+  resetRankSubmitUI();
   document.getElementById('final-yield-num').innerHTML = `${yieldPct}<span style="font-size:26px;">%</span>`;
   document.getElementById('final-grade').innerHTML = `<span style="color:${gradeColor};">${grade}등급</span> <span style="font-size:14px;color:var(--text-dim);font-weight:500;">— ${remark}</span>`;
   document.getElementById('final-total').textContent = `최종 수율 ${yieldPct}% · 8/8 공정 완료`;
@@ -1390,6 +1508,174 @@ function fireConfetti(){
   }
   setTimeout(()=>{ layer.innerHTML=''; }, 3200);
 }
+
+/* ============================================================
+   7.5 ACHIEVEMENTS (local, persists across "진행 초기화")
+   ============================================================ */
+const ACH_KEY = 'sili_fab_achievements_v1';
+const COMPLETIONS_KEY = 'sili_fab_completions_v1';
+let achievements = {};
+try{ achievements = JSON.parse(localStorage.getItem(ACH_KEY)) || {}; }catch(e){ achievements = {}; }
+function saveAchievements(){ try{ localStorage.setItem(ACH_KEY, JSON.stringify(achievements)); }catch(e){} }
+function getCompletions(){ try{ return parseInt(localStorage.getItem(COMPLETIONS_KEY)||'0',10)||0; }catch(e){ return 0; } }
+function incCompletions(){ const n=getCompletions()+1; try{ localStorage.setItem(COMPLETIONS_KEY, String(n)); }catch(e){} return n; }
+
+const ACHIEVEMENTS = [
+  { id:'first_step', icon:'🎬', name:'첫 발걸음', desc:'아무 공정이나 1개 클리어' },
+  { id:'perfect_stage', icon:'💯', name:'퍼펙트 공정', desc:'한 공정에서 100점 달성' },
+  { id:'full_stack', icon:'🏭', name:'8대 공정 마스터', desc:'8개 공정을 모두 완주' },
+  { id:'grade_a', icon:'🥇', name:'S급 엔지니어', desc:'최종 등급 A 달성' },
+  { id:'all_90', icon:'🌟', name:'전 공정 90+', desc:'8개 공정 전부 90점 이상으로 완주' },
+  { id:'all_100', icon:'🎯', name:'무결점 마스터', desc:'8개 공정 전부 100점으로 완주' },
+  { id:'veteran', icon:'🔁', name:'베테랑 팹장', desc:'게임을 3회 완주' },
+  { id:'arcade_addict', icon:'🕹️', name:'오락실 죽순이', desc:'게임을 10회 완주' },
+];
+
+const achToastQueue = [];
+let achToastShowing = false;
+function unlockAchievement(id){
+  if(achievements[id]) return false;
+  achievements[id] = Date.now();
+  saveAchievements();
+  const def = ACHIEVEMENTS.find(a=>a.id===id);
+  if(def){ achToastQueue.push(def); processAchToastQueue(); }
+  return true;
+}
+function processAchToastQueue(){
+  if(achToastShowing || !achToastQueue.length) return;
+  achToastShowing = true;
+  const def = achToastQueue.shift();
+  const el = document.getElementById('ach-toast');
+  document.getElementById('ach-toast-icon').textContent = def.icon;
+  document.getElementById('ach-toast-name').textContent = def.name;
+  el.classList.add('show');
+  playAchievementSound();
+  setTimeout(()=>{
+    el.classList.remove('show');
+    setTimeout(()=>{ achToastShowing=false; processAchToastQueue(); }, 350);
+  }, 2200);
+}
+function checkRunAchievements(yieldPct, grade){
+  unlockAchievement('full_stack');
+  const n = incCompletions();
+  if(n>=3) unlockAchievement('veteran');
+  if(n>=10) unlockAchievement('arcade_addict');
+  if(state.scores.every(s=>s!==null && s>=90)) unlockAchievement('all_90');
+  if(state.scores.every(s=>s===100)) unlockAchievement('all_100');
+  if(grade==='A') unlockAchievement('grade_a');
+}
+function renderAchievementsScreen(){
+  const list = document.getElementById('ach-list');
+  const unlockedCount = ACHIEVEMENTS.filter(a=>achievements[a.id]).length;
+  document.getElementById('ach-progress').textContent = `${unlockedCount} / ${ACHIEVEMENTS.length}`;
+  list.innerHTML = ACHIEVEMENTS.map(a=>{
+    const unlocked = !!achievements[a.id];
+    const dateStr = unlocked ? new Date(achievements[a.id]).toLocaleDateString('ko-KR') : '';
+    return `
+      <div class="ach-card ${unlocked?'unlocked':'locked'}">
+        <div class="ach-icon">${unlocked ? a.icon : '🔒'}</div>
+        <div class="ach-info">
+          <div class="ach-name">${a.name}</div>
+          <div class="ach-desc">${a.desc}</div>
+          ${unlocked ? `<div class="ach-date">${dateStr} 달성</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+document.getElementById('btn-open-achievements').addEventListener('click', ()=>{
+  renderAchievementsScreen();
+  showScreen('screen-achievements');
+});
+document.getElementById('btn-ach-back').addEventListener('click', ()=> showScreen('screen-title'));
+
+/* ============================================================
+   7.6 GLOBAL RANKING (Vercel KV via /api/leaderboard)
+   ============================================================ */
+let lastYieldPct = 0, lastGrade = 'F';
+function escapeHTML(str){
+  return String(str).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function resetRankSubmitUI(){
+  const status = document.getElementById('rank-submit-status');
+  const btn = document.getElementById('btn-rank-submit');
+  const input = document.getElementById('rank-name-input');
+  if(!status || !btn || !input) return;
+  status.textContent = '';
+  btn.disabled = false;
+  btn.textContent = '등록';
+  try{ input.value = localStorage.getItem('sili_fab_nickname') || ''; }catch(e){ input.value=''; }
+}
+document.getElementById('btn-rank-submit').addEventListener('click', async ()=>{
+  const input = document.getElementById('rank-name-input');
+  const btn = document.getElementById('btn-rank-submit');
+  const status = document.getElementById('rank-submit-status');
+  const name = input.value.trim();
+  if(!name){ status.textContent='닉네임을 입력해주세요.'; status.style.color='var(--bad)'; return; }
+  try{ localStorage.setItem('sili_fab_nickname', name); }catch(e){}
+  btn.disabled = true; btn.textContent = '등록 중...';
+  status.style.color = 'var(--text-dim)';
+  status.textContent = '';
+  try{
+    const res = await fetch('/api/leaderboard', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name, yieldPct:lastYieldPct, grade:lastGrade })
+    });
+    if(res.status===503){
+      status.textContent = '랭킹 서버가 아직 준비되지 않았어요.';
+      status.style.color = 'var(--warn)';
+      btn.disabled = false; btn.textContent = '등록';
+      return;
+    }
+    if(!res.ok) throw new Error('bad status');
+    const data = await res.json();
+    status.textContent = data.rank ? `등록 완료! 전체 ${data.rank}위예요 🎉` : '등록 완료!';
+    status.style.color = 'var(--good)';
+    btn.textContent = '등록 완료 ✓';
+  }catch(e){
+    status.textContent = '등록에 실패했어요. 잠시 후 다시 시도해주세요.';
+    status.style.color = 'var(--bad)';
+    btn.disabled = false; btn.textContent = '등록';
+  }
+});
+async function loadRanking(){
+  const statusEl = document.getElementById('rank-status');
+  const listEl = document.getElementById('rank-list');
+  listEl.innerHTML = '';
+  statusEl.style.display = 'block';
+  statusEl.textContent = '불러오는 중...';
+  try{
+    const res = await fetch('/api/leaderboard');
+    if(res.status===503){ statusEl.textContent='랭킹 서버 준비 중이에요. 나중에 다시 확인해주세요.'; return; }
+    if(!res.ok) throw new Error('bad status');
+    const data = await res.json();
+    const entries = data.entries || [];
+    if(!entries.length){ statusEl.textContent='아직 등록된 기록이 없어요. 첫 랭커가 되어보세요!'; return; }
+    statusEl.style.display = 'none';
+    const medals = ['🥇','🥈','🥉'];
+    listEl.innerHTML = entries.map((e,idx)=>{
+      const tier = idx<3 ? 'top'+(idx+1) : '';
+      return `
+        <div class="rank-row ${tier}">
+          <div class="rank-num">${medals[idx] || (idx+1)}</div>
+          <div class="rank-name">${escapeHTML(e.name)}</div>
+          <div class="rank-grade">${escapeHTML(e.grade)}등급</div>
+          <div class="rank-yield">${e.yieldPct}%</div>
+        </div>
+      `;
+    }).join('');
+  }catch(e){
+    statusEl.style.display = 'block';
+    statusEl.textContent = '랭킹을 불러오지 못했어요. 네트워크를 확인해주세요.';
+  }
+}
+document.getElementById('btn-open-ranking').addEventListener('click', ()=>{
+  showScreen('screen-ranking');
+  loadRanking();
+});
+document.getElementById('btn-rank-back').addEventListener('click', ()=> showScreen('screen-title'));
+document.getElementById('btn-rank-refresh').addEventListener('click', loadRanking);
 
 /* ============================================================
    8. MINIGAME MODULES
