@@ -1405,6 +1405,7 @@ function onStageComplete(i, rawScore, diag){
   playSuccessChime(i);
   unlockAchievement('first_step');
   if(score>=100) unlockAchievement('perfect_stage');
+  checkTimeOfDayAchievement();
   renderCompleteOverlay(i, score);
 }
 
@@ -1554,11 +1555,19 @@ const ACHIEVEMENTS = [
   { id:'first_step', icon:'🎬', name:'첫 발걸음', desc:'아무 공정이나 1개 클리어' },
   { id:'perfect_stage', icon:'💯', name:'퍼펙트 공정', desc:'한 공정에서 100점 달성' },
   { id:'full_stack', icon:'🏭', name:'8대 공정 마스터', desc:'8개 공정을 모두 완주' },
+  { id:'grade_b', icon:'🥈', name:'준수한 엔지니어', desc:'최종 등급 B 이상 달성' },
   { id:'grade_a', icon:'🥇', name:'S급 엔지니어', desc:'최종 등급 A 달성' },
   { id:'all_90', icon:'🌟', name:'전 공정 90+', desc:'8개 공정 전부 90점 이상으로 완주' },
   { id:'all_100', icon:'🎯', name:'무결점 마스터', desc:'8개 공정 전부 100점으로 완주' },
   { id:'veteran', icon:'🔁', name:'베테랑 팹장', desc:'게임을 3회 완주' },
   { id:'arcade_addict', icon:'🕹️', name:'오락실 죽순이', desc:'게임을 10회 완주' },
+  { id:'master_fab', icon:'🔟', name:'팹의 지배자', desc:'게임을 20회 완주' },
+  { id:'memory_first', icon:'🎴', name:'카드 초보 탈출', desc:'칩 짝맞추기 1회 완료' },
+  { id:'memory_perfect', icon:'🧠', name:'기억력 천재', desc:'칩 짝맞추기를 최소 이동(8회)으로 클리어' },
+  { id:'rank_debut', icon:'🌐', name:'랭킹 데뷔', desc:'전체 랭킹에 처음 등록' },
+  { id:'night_owl', icon:'🌙', name:'올빼미 엔지니어', desc:'자정~새벽 5시 사이에 공정 클리어' },
+  { id:'early_bird', icon:'☀️', name:'아침형 엔지니어', desc:'오전 6시~9시 사이에 공정 클리어' },
+  { id:'achievement_hunter', icon:'🏅', name:'업적 헌터', desc:'다른 업적을 10개 이상 달성' },
 ];
 
 const achToastQueue = [];
@@ -1569,6 +1578,10 @@ function unlockAchievement(id){
   saveAchievements();
   const def = ACHIEVEMENTS.find(a=>a.id===id);
   if(def){ achToastQueue.push(def); processAchToastQueue(); }
+  if(id!=='achievement_hunter'){
+    const unlockedCount = ACHIEVEMENTS.filter(a=>a.id!=='achievement_hunter' && achievements[a.id]).length;
+    if(unlockedCount>=10) unlockAchievement('achievement_hunter');
+  }
   return true;
 }
 function processAchToastQueue(){
@@ -1590,9 +1603,16 @@ function checkRunAchievements(yieldPct, grade){
   const n = incCompletions();
   if(n>=3) unlockAchievement('veteran');
   if(n>=10) unlockAchievement('arcade_addict');
+  if(n>=20) unlockAchievement('master_fab');
   if(state.scores.every(s=>s!==null && s>=90)) unlockAchievement('all_90');
   if(state.scores.every(s=>s===100)) unlockAchievement('all_100');
+  if(grade==='A' || grade==='B') unlockAchievement('grade_b');
   if(grade==='A') unlockAchievement('grade_a');
+}
+function checkTimeOfDayAchievement(){
+  const hour = new Date().getHours();
+  if(hour>=0 && hour<5) unlockAchievement('night_owl');
+  if(hour>=6 && hour<9) unlockAchievement('early_bird');
 }
 function renderAchievementsScreen(){
   const list = document.getElementById('ach-list');
@@ -1663,6 +1683,7 @@ document.getElementById('btn-rank-submit').addEventListener('click', async ()=>{
     status.textContent = data.rank ? `등록 완료! 전체 ${data.rank}위예요 🎉` : '등록 완료!';
     status.style.color = 'var(--good)';
     btn.textContent = '등록 완료 ✓';
+    unlockAchievement('rank_debut');
   }catch(e){
     status.textContent = '등록에 실패했어요. 잠시 후 다시 시도해주세요.';
     status.style.color = 'var(--bad)';
@@ -1831,6 +1852,8 @@ function startMemGame(){
 
   function finish(finalMoves){
     const score = Math.max(10, Math.round(100 - (finalMoves-8)*5.5));
+    unlockAchievement('memory_first');
+    if(finalMoves<=8) unlockAchievement('memory_perfect');
     setTimeout(()=> renderMemResult(score, finalMoves), 500);
   }
 }
