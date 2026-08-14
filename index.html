@@ -759,6 +759,13 @@ body.pwa-banner-open #btn-game-sound{
 .ach-card .ach-date{font-size:11.5px;color:var(--gold);margin-top:3px;font-weight:700;}
 
 /* ---------- ranking screen ---------- */
+.rank-tabs{display:flex;gap:8px;padding:12px 16px 2px;}
+.rank-tab-btn{
+  flex:1;padding:9px 0;border-radius:10px;border:2px solid var(--line);
+  background:var(--panel);color:var(--text-dim);font-weight:800;font-size:14.5px;
+  cursor:pointer;font-family:inherit;transition:background .12s ease,color .12s ease,border-color .12s ease;
+}
+.rank-tab-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 .rank-status{text-align:center;color:var(--text-dim);font-size:14.5px;font-weight:700;padding:24px 16px;}
 .rank-list{padding:4px 2px 20px;}
 .rank-row{
@@ -924,6 +931,10 @@ body.pwa-banner-open #btn-game-sound{
       <button class="btn ghost" id="btn-rank-back" style="padding:8px 12px;font-size:15px;">◀ 뒤로</button>
       <h1 class="pixel" id="rank-title">전체 랭킹</h1>
       <button class="btn ghost" id="btn-rank-refresh" style="padding:8px 12px;font-size:14px;">↻</button>
+    </div>
+    <div class="rank-tabs">
+      <button class="rank-tab-btn active" id="rank-tab-today">오늘</button>
+      <button class="rank-tab-btn" id="rank-tab-all">전체</button>
     </div>
     <div class="rank-status" id="rank-status">불러오는 중...</div>
     <div class="rank-list" id="rank-list"></div>
@@ -1940,6 +1951,51 @@ document.getElementById('btn-rank-submit').addEventListener('click', async ()=>{
 });
 let currentRankBoard = 'main';
 let rankReturnScreen = 'screen-title';
+let rankEntriesCache = [];
+let rankTab = 'today';
+
+/* start of "today" in KST (UTC+9), expressed as a UTC epoch ms — this app's
+   audience is Korean, so the daily boundary resets at midnight Korea time
+   regardless of the visitor's own timezone */
+function startOfTodayKST(){
+  const KST_OFFSET = 9*3600*1000;
+  const kstNow = Date.now() + KST_OFFSET;
+  const kstMidnight = Math.floor(kstNow/86400000)*86400000;
+  return kstMidnight - KST_OFFSET;
+}
+
+function renderRankList(){
+  const statusEl = document.getElementById('rank-status');
+  const listEl = document.getElementById('rank-list');
+  const isMain = currentRankBoard==='main';
+  let entries = rankEntriesCache;
+  if(rankTab==='today'){
+    const todayStart = startOfTodayKST();
+    entries = entries.filter(e=> e.ts >= todayStart);
+  }
+  if(!entries.length){
+    listEl.innerHTML = '';
+    statusEl.style.display = 'block';
+    statusEl.textContent = rankTab==='today'
+      ? '오늘 등록된 기록이 아직 없어요. 첫 랭커가 되어보세요!'
+      : '아직 등록된 기록이 없어요. 첫 랭커가 되어보세요!';
+    return;
+  }
+  statusEl.style.display = 'none';
+  const medals = ['🥇','🥈','🥉'];
+  listEl.innerHTML = entries.map((e,idx)=>{
+    const tier = idx<3 ? 'top'+(idx+1) : '';
+    return `
+      <div class="rank-row ${tier}">
+        <div class="rank-num">${medals[idx] || (idx+1)}</div>
+        <div class="rank-name">${escapeHTML(e.name)}</div>
+        ${isMain ? `<div class="rank-grade">${escapeHTML(e.grade)}등급</div>` : ''}
+        <div class="rank-yield">${isMain ? e.yieldPct+'%' : e.score+'점'}</div>
+      </div>
+    `;
+  }).join('');
+}
+
 async function loadRanking(){
   const statusEl = document.getElementById('rank-status');
   const listEl = document.getElementById('rank-list');
@@ -1950,46 +2006,48 @@ async function loadRanking(){
   try{
     const qs = isMain ? '' : `?board=${encodeURIComponent(currentRankBoard)}`;
     const res = await fetch('/api/leaderboard'+qs);
-    if(res.status===503){ statusEl.textContent='랭킹 서버 준비 중이에요. 나중에 다시 확인해주세요.'; return; }
+    if(res.status===503){ statusEl.textContent='랭킹 서버 준비 중이에요. 나중에 다시 확인해주세요.'; rankEntriesCache=[]; return; }
     if(!res.ok) throw new Error('bad status');
     const data = await res.json();
-    const entries = data.entries || [];
-    if(!entries.length){ statusEl.textContent='아직 등록된 기록이 없어요. 첫 랭커가 되어보세요!'; return; }
-    statusEl.style.display = 'none';
-    const medals = ['🥇','🥈','🥉'];
-    listEl.innerHTML = entries.map((e,idx)=>{
-      const tier = idx<3 ? 'top'+(idx+1) : '';
-      return `
-        <div class="rank-row ${tier}">
-          <div class="rank-num">${medals[idx] || (idx+1)}</div>
-          <div class="rank-name">${escapeHTML(e.name)}</div>
-          ${isMain ? `<div class="rank-grade">${escapeHTML(e.grade)}등급</div>` : ''}
-          <div class="rank-yield">${isMain ? e.yieldPct+'%' : e.score+'점'}</div>
-        </div>
-      `;
-    }).join('');
+    rankEntriesCache = data.entries || [];
+    renderRankList();
   }catch(e){
+    rankEntriesCache = [];
     statusEl.style.display = 'block';
     statusEl.textContent = '랭킹을 불러오지 못했어요. 네트워크를 확인해주세요.';
   }
 }
+function setRankTab(tab){
+  rankTab = tab;
+  document.getElementById('rank-tab-today').classList.toggle('active', tab==='today');
+  document.getElementById('rank-tab-all').classList.toggle('active', tab==='all');
+  renderRankList();
+}
 function openMainRanking(){
   currentRankBoard = 'main';
   rankReturnScreen = 'screen-title';
+  rankTab = 'today';
   document.getElementById('rank-title').textContent = '전체 랭킹';
+  document.getElementById('rank-tab-today').classList.add('active');
+  document.getElementById('rank-tab-all').classList.remove('active');
   showScreen('screen-ranking');
   loadRanking();
 }
 function openMinigameRanking(board, title){
   currentRankBoard = board;
   rankReturnScreen = 'screen-minigames';
+  rankTab = 'today';
   document.getElementById('rank-title').textContent = title+' 랭킹';
+  document.getElementById('rank-tab-today').classList.add('active');
+  document.getElementById('rank-tab-all').classList.remove('active');
   showScreen('screen-ranking');
   loadRanking();
 }
 document.getElementById('btn-open-ranking').addEventListener('click', openMainRanking);
 document.getElementById('btn-rank-back').addEventListener('click', ()=> showScreen(rankReturnScreen));
 document.getElementById('btn-rank-refresh').addEventListener('click', loadRanking);
+document.getElementById('rank-tab-today').addEventListener('click', ()=> setRankTab('today'));
+document.getElementById('rank-tab-all').addEventListener('click', ()=> setRankTab('all'));
 
 /* shared rank-submit card, reused by every minigame result screen */
 function rankSubmitCardHTML(){
