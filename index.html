@@ -522,6 +522,21 @@ body{
 .qtc-target.qtc-hit{animation:qtcPop .2s ease forwards;}
 @keyframes qtcPop{to{transform:translate(-50%,-50%) scale(1.5);opacity:0;}}
 
+/* ---------- shared: floating "+N" score popup, used by several minigame engines ---------- */
+.score-pop{
+  position:absolute; left:0; top:0;
+  font-weight:900; font-size:19px; color:var(--good);
+  pointer-events:none; z-index:20;
+  text-shadow:0 1px 0 rgba(255,255,255,.5), 0 2px 8px rgba(0,0,0,.2);
+  animation:scorePopUp .65s cubic-bezier(.2,.8,.3,1) forwards;
+  transform:translate(-50%,-50%);
+}
+@keyframes scorePopUp{
+  0%{ transform:translate(-50%,-50%) scale(.6); opacity:0; }
+  18%{ transform:translate(-50%,calc(-50% - 8px)) scale(1.2); opacity:1; }
+  100%{ transform:translate(-50%,calc(-50% - 34px)) scale(1); opacity:0; }
+}
+
 /* ---------- extra minigame engine: drag to target ---------- */
 .dtg-area{position:relative;flex:1;min-height:230px;margin:6px 16px;touch-action:none;}
 .dtg-target{
@@ -2504,6 +2519,27 @@ document.getElementById('btn-defect-back').addEventListener('click', ()=>{
 function rampT(elapsed, rampTime){ return Math.max(0, Math.min(1, elapsed/rampTime)); }
 function lerp(a, b, t){ return a + (b-a)*t; }
 
+/* shared: floating "+N" score popup — container must be position:relative
+   (its overflow may be hidden, so the rise distance in the keyframe is kept
+   small on purpose). anchorEl is the element to center the popup on; its
+   position is converted into pixels relative to container so this works
+   regardless of how deep anchorEl is nested inside container. */
+function showScorePop(container, anchorEl, text, color, xFrac){
+  if(!container || !anchorEl) return;
+  const cRect = container.getBoundingClientRect();
+  const aRect = anchorEl.getBoundingClientRect();
+  const x = (aRect.left - cRect.left) + aRect.width*(xFrac==null?0.5:xFrac);
+  const y = (aRect.top - cRect.top) + aRect.height/2;
+  const el = document.createElement('div');
+  el.className = 'score-pop';
+  el.textContent = text;
+  el.style.left = x+'px';
+  el.style.top = y+'px';
+  if(color) el.style.color = color;
+  container.appendChild(el);
+  setTimeout(()=>{ el.remove(); }, 700);
+}
+
 function timingZoneGame(cfg){
   return function(container, onFinish, ctx){
     let hits=0, cleanedUp=false, raf=null, tickId=null, lastTap=0;
@@ -2554,8 +2590,10 @@ function timingZoneGame(cfg){
       if(now-lastTap < (cfg.tapCooldown||280)) return;
       lastTap = now;
       const inZone = Math.abs(pos-50) <= curZoneWidth/2;
-      if(inZone){ hits++; scoreEl.textContent = hits*cfg.pointsPerHit; track.style.borderColor='var(--good)'; }
-      else track.style.borderColor='var(--bad)';
+      if(inZone){
+        hits++; scoreEl.textContent = hits*cfg.pointsPerHit; track.style.borderColor='var(--good)';
+        showScorePop(container, track, '+'+cfg.pointsPerHit, 'var(--good)', pos/100);
+      } else track.style.borderColor='var(--bad)';
       setTimeout(()=>{ if(!cleanedUp) track.style.borderColor='var(--line)'; }, 150);
     });
     function finish(){
@@ -2573,7 +2611,7 @@ function timingZoneGame(cfg){
    target lifetime keeps shrinking the whole session so it never stops getting harder */
 function quickTapComboGame(cfg){
   return function(container, onFinish, ctx){
-    let hits=0, combo=0, cleanedUp=false, timeUp=false, spawnTimer=null, alive=0;
+    let combo=0, score=0, cleanedUp=false, timeUp=false, spawnTimer=null, alive=0;
     let remaining = cfg.timeLimit;
     container.innerHTML = `
       <div class="exp-status">${cfg.label} · 점수 <span id="qtc-score">0</span> · <span id="qtc-combo">콤보 0</span></div>
@@ -2621,10 +2659,14 @@ function quickTapComboGame(cfg){
         tapped = true;
         alive--;
         clearTimeout(timer);
-        hits++; combo++;
-        scoreEl.textContent = hits*cfg.pointsPerHit;
+        combo++;
+        const comboBonus = Math.min(combo, 20);
+        const gained = cfg.pointsPerHit + comboBonus;
+        score += gained;
+        scoreEl.textContent = score;
         comboEl.textContent = '콤보 '+combo;
         t.classList.add('qtc-hit');
+        showScorePop(container, t, '+'+gained, combo>=10 ? 'var(--gold)' : 'var(--good)');
         setTimeout(()=>{ if(!cleanedUp) t.remove(); }, 180);
         if(timeUp) maybeFinish(); else spawnTimer = setTimeout(spawnTarget, currentGap());
       });
@@ -2635,7 +2677,7 @@ function quickTapComboGame(cfg){
       cleanedUp = true;
       clearInterval(tickId);
       clearTimeout(spawnTimer);
-      onFinish(hits*cfg.pointsPerHit);
+      onFinish(score);
     }
     return function cleanup(){ cleanedUp = true; clearInterval(tickId); clearTimeout(spawnTimer); };
   };
@@ -2678,6 +2720,7 @@ function dragTargetGame(cfg){
         piece.style.left = Math.max(0,Math.min(100,p.x))+'%';
         piece.style.top = Math.max(0,Math.min(100,p.y))+'%';
         piece.style.borderColor = inZone ? 'var(--good)' : 'var(--bad)';
+        if(inZone) showScorePop(container, piece, '+'+cfg.pointsPerHit, 'var(--good)');
         setTimeout(()=>{ if(!cleanedUp) spawnRound(); }, 350);
       }
       piece.addEventListener('pointerdown', (e)=>{ dragging=true; try{ piece.setPointerCapture(e.pointerId); }catch(err){} });
@@ -2794,7 +2837,7 @@ function traceAvoidGame(cfg){
       function checkHit(px,py){ return obstacles.some(o=> Math.hypot(px-o.x, py-o.y) < tol); }
       function finish(){
         if(done || cleanedUp) return; done=true; dragging=false;
-        if(!failed) hits++;
+        if(!failed){ hits++; showScorePop(container, dot, '+'+cfg.pointsPerHit, 'var(--good)'); }
         setTimeout(()=>{ if(!cleanedUp) spawnRound(); }, 350);
       }
       dot.addEventListener('pointerdown', (e)=>{ dragging=true; try{ dot.setPointerCapture(e.pointerId); }catch(err){} });
