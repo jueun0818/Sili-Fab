@@ -157,6 +157,30 @@ body{
 .logo-sub{color:var(--text-dim);font-size:15.5px;max-width:520px;}
 .chip-orbit{width:150px;height:150px;margin:6px 0;filter:drop-shadow(0 0 18px rgba(56,189,248,.4));}
 .title-buttons{display:flex;flex-direction:column;gap:12px;width:min(320px,86vw);}
+.title-menu-card{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:4px;
+  background:linear-gradient(180deg,var(--panel),var(--panel2));
+  border:2px solid var(--line);
+  border-radius:16px;
+  padding:14px 6px;
+}
+.title-menu-item{
+  display:flex;flex-direction:column;align-items:center;gap:7px;
+  font-family:inherit;color:var(--text);
+  background:transparent;border:none;cursor:pointer;
+  padding:4px 2px;border-radius:12px;
+  transition:transform .1s ease-out, background .12s ease;
+}
+.title-menu-item:active{transform:translateY(2px);background:rgba(52,21,48,.06);}
+.title-menu-icon{
+  width:50px;height:50px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;
+  border:1px solid var(--line);
+}
+.title-menu-label{font-size:13px;font-weight:700;color:var(--text-dim);}
 .title-foot{color:var(--text-dim);font-size:14.5px;margin-top:6px;}
 .howto-card{
   width:min(420px,88vw);
@@ -289,6 +313,7 @@ body{
   color:var(--text);z-index:5;text-align:center;max-width:88%;
 }
 .game-footer-hint{font-size:15px;color:var(--text-dim);text-align:center;}
+.game-footer-hint .fact-line{display:block;margin-top:5px;font-size:12.5px;font-weight:700;color:var(--accent);opacity:.85;}
 .stage-overlay{
   position:absolute; inset:0; z-index:60;
   background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(255,241,248,.99));
@@ -346,6 +371,29 @@ body{
 .ready-btn{width:min(260px,80vw);font-size:18px;padding:16px 22px;}
 @keyframes readyPop{from{transform:scale(.5);opacity:0;}to{transform:scale(1);opacity:1;}}
 
+/* ---------- pre-stage OX quiz ---------- */
+.quiz-tag{font-size:14px;color:var(--accent);letter-spacing:1px;font-weight:700;}
+.quiz-q{font-size:19px;font-weight:800;text-align:center;margin:14px 0 24px;line-height:1.5;max-width:340px;align-self:center;}
+.quiz-ox-row{display:flex;gap:18px;justify-content:center;}
+.quiz-ox-btn{
+  width:96px;height:96px;border-radius:50%;
+  font-size:34px;font-weight:900;
+  border:3px solid var(--line);
+  background:var(--panel);
+  color:var(--text);
+  cursor:pointer;
+  transition:transform .1s ease-out, border-color .12s ease, background .12s ease;
+}
+.quiz-ox-btn:active{transform:scale(.94);}
+.quiz-ox-btn.correct{border-color:var(--good);background:rgba(22,163,74,.12);}
+.quiz-ox-btn.wrong{border-color:var(--bad);background:rgba(225,29,72,.1);}
+.quiz-ox-btn:disabled{cursor:default;}
+.quiz-ox-btn:disabled:not(.correct):not(.wrong){opacity:.35;}
+.quiz-feedback{margin-top:20px;width:min(360px,88vw);align-self:center;text-align:left;background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:14px 16px;font-size:15px;line-height:1.6;color:var(--text);}
+.quiz-verdict{font-weight:900;font-size:16.5px;margin-bottom:6px;}
+.quiz-verdict.correct{color:var(--good);}
+.quiz-verdict.wrong{color:var(--bad);}
+
 /* ---------- result / final ---------- */
 .result-hero{text-align:center;padding:20px 0;}
 .result-stars{font-size:44px;letter-spacing:6px;margin:8px 0;}
@@ -358,7 +406,8 @@ body{
   text-align:center;
 }
 .cert h2{font-size:18px;color:var(--gold);margin-bottom:4px;}
-.cert .name{font-size:25px;font-weight:900;margin:14px 0 6px;line-height:1.5;}
+.cert .name{font-size:25px;font-weight:900;margin:14px 0 4px;line-height:1.4;}
+.final-remark{font-size:14.5px;color:var(--text-dim);font-weight:600;line-height:1.6;margin:0 0 10px;}
 .cert-list{text-align:left;font-size:16.5px;line-height:1.95;color:var(--text-dim);margin-top:14px;}
 .cert-list b{color:var(--text);}
 .final-yield-num{font-size:52px;font-weight:900;color:var(--accent);margin-top:6px;}
@@ -435,6 +484,56 @@ body{
 .exp-card{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;}
 .exp-card .choice-icon{font-size:28px;}
 .choice-card.tried{opacity:.4;filter:grayscale(.6);}
+
+/* ---------- alt minigame: 결함 탐지(defect spot) grid ---------- */
+.spot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:280px;margin:16px auto;padding:0 16px;}
+.spot-cell{
+  aspect-ratio:1;border-radius:10px;
+  background:var(--panel2);border:2px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  cursor:pointer;transition:transform .1s ease-out, border-color .12s ease, background .12s ease;
+  user-select:none;
+}
+.spot-cell:active{transform:scale(.9);}
+.spot-cell.hit-good{border-color:var(--good);background:rgba(22,163,74,.18);}
+.spot-cell.hit-bad{border-color:var(--bad);background:rgba(225,29,72,.22);animation:etch2Shake .3s ease;}
+
+/* ---------- extra minigame engine: timing zone ---------- */
+.tz-track{
+  position:relative;height:26px;margin:34px 22px 0;
+  background:#fff5fa;border:2px solid var(--line);border-radius:13px;overflow:hidden;
+}
+.tz-zone{position:absolute;top:0;bottom:0;background:rgba(46,204,113,.28);border-left:2px dashed var(--good);border-right:2px dashed var(--good);}
+.tz-marker{
+  position:absolute;top:-10px;width:6px;height:46px;border-radius:3px;
+  background:var(--accent);box-shadow:0 0 10px var(--accent);
+  transform:translateX(-3px);
+}
+
+/* ---------- extra minigame engine: quick tap combo ---------- */
+.qtc-area{position:relative;flex:1;min-height:230px;margin:6px 4px;touch-action:none;}
+.qtc-target{
+  position:absolute;width:56px;height:56px;border-radius:50%;
+  transform:translate(-50%,-50%);
+  background:radial-gradient(circle at 35% 30%,#fff,var(--accent2) 70%);
+  border:3px solid var(--accent);box-shadow:0 0 10px rgba(56,189,248,.5);
+  cursor:pointer;
+}
+.qtc-target.qtc-hit{animation:qtcPop .2s ease forwards;}
+@keyframes qtcPop{to{transform:translate(-50%,-50%) scale(1.5);opacity:0;}}
+
+/* ---------- extra minigame engine: drag to target ---------- */
+.dtg-area{position:relative;flex:1;min-height:230px;margin:6px 16px;touch-action:none;}
+.dtg-target{
+  position:absolute;width:52px;height:52px;border-radius:50%;
+  border:3px dashed var(--accent2);transform:translate(-50%,-50%);
+}
+.dtg-piece{
+  position:absolute;width:36px;height:36px;border-radius:50%;
+  background:linear-gradient(180deg,var(--accent),#1e4fc4);
+  border:3px solid var(--line);transform:translate(-50%,-50%);
+  cursor:grab;box-shadow:0 3px 8px rgba(0,0,0,.3);touch-action:none;
+}
 
 /* stage4 drag-etch */
 .etch-warning{
@@ -695,13 +794,21 @@ body.pwa-banner-open #btn-game-sound{
     </div>
     <div class="title-buttons">
       <button class="btn" id="btn-start">🚀 공정 시작하기</button>
-      <button class="btn ghost" id="btn-continue">이어하기</button>
-      <button class="btn ghost" id="btn-reset">진행 초기화</button>
-      <div class="btn-row">
-        <button class="btn ghost" id="btn-open-achievements" style="flex:1;">🏆 업적</button>
-        <button class="btn ghost" id="btn-open-ranking" style="flex:1;">🌐 랭킹</button>
+      <div class="title-menu-card">
+        <button class="title-menu-item" id="btn-open-achievements">
+          <span class="title-menu-icon" style="background:rgba(180,83,9,.12);">🏆</span>
+          <span class="title-menu-label">업적</span>
+        </button>
+        <button class="title-menu-item" id="btn-open-ranking">
+          <span class="title-menu-icon" style="background:rgba(14,165,233,.12);">🌐</span>
+          <span class="title-menu-label">랭킹</span>
+        </button>
+        <button class="title-menu-item" id="btn-open-mem">
+          <span class="title-menu-icon" style="background:rgba(47,111,237,.12);">🃏</span>
+          <span class="title-menu-label">미니게임</span>
+        </button>
       </div>
-      <button class="btn ghost" id="btn-open-mem">🃏 스페셜 미니게임: 칩 짝맞추기</button>
+      <button class="btn ghost" id="btn-reset" style="font-size:13.5px;padding:9px 14px;opacity:.7;align-self:center;">진행 초기화</button>
     </div>
     <div class="spacer"></div>
     <div class="title-foot">고1 진로/과학 수업용 · 8개 공정을 순서대로 클리어해보세요</div>
@@ -740,6 +847,7 @@ body.pwa-banner-open #btn-game-sound{
       <div class="badge">FINAL YIELD</div>
       <div class="final-yield-num" id="final-yield-num">0<span style="font-size:26px;">%</span></div>
       <div class="name" id="final-grade">S급 엔지니어</div>
+      <div class="final-remark" id="final-remark"></div>
       <div id="final-total" style="color:var(--gold);font-size:16.5px;">총점 0점</div>
     </div>
     <div id="final-report"></div>
@@ -780,6 +888,36 @@ body.pwa-banner-open #btn-game-sound{
     <div class="rank-list" id="rank-list"></div>
   </section>
 
+  <!-- ============ MINIGAME HUB ============ -->
+  <section id="screen-minigames" class="screen">
+    <div class="map-header">
+      <button class="btn ghost" id="btn-mg-back" style="padding:8px 12px;font-size:15px;">◀ 처음으로</button>
+      <h1 class="pixel">미니게임</h1>
+    </div>
+    <div class="title-menu-card" id="mg-grid" style="grid-template-columns:1fr 1fr;padding:18px 10px;">
+      <button class="title-menu-item" id="mg-open-mem">
+        <span class="title-menu-icon" style="width:60px;height:60px;font-size:28px;background:rgba(47,111,237,.12);">🃏</span>
+        <span class="title-menu-label" style="font-size:14px;">칩 짝맞추기</span>
+      </button>
+      <button class="title-menu-item" id="mg-open-defect">
+        <span class="title-menu-icon" style="width:60px;height:60px;font-size:28px;background:rgba(225,29,72,.12);">🔍</span>
+        <span class="title-menu-label" style="font-size:14px;">결함 탐지</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ============ EXTRA MINIGAME: shared shell for the 6 process-themed games ============ -->
+  <section id="screen-extra" class="screen">
+    <div class="game-hud">
+      <button class="btn ghost" id="btn-extra-back" style="padding:6px 10px;font-size:14px;">◀</button>
+      <div class="title pixel" id="extra-title" style="font-size:14px;"></div>
+      <button class="btn ghost snd-toggle" id="btn-extra-sound" style="padding:6px 10px;font-size:14px;margin-left:auto;">🔊</button>
+      <div class="timer" id="extra-timer"><span id="extra-timer-text">--</span></div>
+    </div>
+    <div class="game-stage-area" id="extra-stage-area"></div>
+    <div class="game-footer-hint" id="extra-hint"></div>
+  </section>
+
   <!-- ============ EXTRA MINIGAME: CHIP MEMORY MATCH ============ -->
   <section id="screen-memory" class="screen">
     <div class="game-hud">
@@ -790,6 +928,21 @@ body.pwa-banner-open #btn-game-sound{
     </div>
     <div class="game-stage-area" id="mem-stage-area"></div>
     <div class="game-footer-hint" id="mem-hint">같은 공정 아이콘 카드 두 장을 찾아 짝을 맞추세요!</div>
+  </section>
+
+  <!-- ============ EXTRA MINIGAME: DEFECT SPOT ============ -->
+  <section id="screen-defect" class="screen">
+    <div class="game-hud">
+      <button class="btn ghost" id="btn-defect-back" style="padding:6px 10px;font-size:14px;">◀</button>
+      <div class="title pixel" style="font-size:14px;">🔍 결함 탐지</div>
+      <button class="btn ghost snd-toggle" id="btn-defect-sound" style="padding:6px 10px;font-size:14px;margin-left:auto;">🔊</button>
+      <div class="timer" id="defect-timer"><span id="defect-timer-text">--</span></div>
+    </div>
+    <div class="timer-bar-track" id="defect-timer-bar-track">
+      <div class="timer-bar-fill" id="defect-timer-bar-fill"></div>
+    </div>
+    <div class="game-stage-area" id="defect-stage-area"></div>
+    <div class="game-footer-hint" id="defect-hint">결함(⚠️) 칩만 찾아 탭하세요. 정상 칩을 누르면 감점!</div>
   </section>
 
   <div class="modal-backdrop hidden" id="modal-backdrop">
@@ -833,42 +986,50 @@ body.pwa-banner-open #btn-game-sound{
    ============================================================ */
 const STAGES = [
   { key:'wafer', name:'웨이퍼 제조', sub:'싹둑! 칼각 자르기', color:'#93c5fd',
-    desc:'모래(이산화규소)에서 뽑아낸 순도 99.9999999% 실리콘을 녹였다 굳혀 둥근 기둥 모양의 "잉곳"을 만들고, 이것을 다이아몬드 톱으로 종이보다 얇게 썰어요. 그 얇은 조각 한 장이 바로 반도체의 도화지, "웨이퍼"예요. 모든 회로는 이 위에 그려져요.',
+    fact:'지름 300mm 실리콘 잉곳을 와이어 쏘로 머리카락보다 얇게 썰어 웨이퍼를 만들어요.',
+    quiz:{ q:'웨이퍼의 원료는 우리 주변에 흔한 모래(이산화규소)다?', a:true, explain:'⭕ 맞아요! 모래 속 이산화규소를 정제해 순도 99.999999999%짜리 초고순도 실리콘을 뽑아내요.' },
     howto:'웨이퍼 원판이 나타나면 사라지기 전에 손가락으로 원판을 가로질러 쓱 그으세요. 원판 중심에 가깝게, 빠르게 그을수록 고득점!',
     mission:'✂️ 웨이퍼 원판이 사라지기 전에 손가락으로 가로질러 그어 슬라이스하라!',
     icon:'ingot' },
   { key:'oxidation', name:'산화 공정', sub:'두께 맞추기 타이머', color:'#60a5fa',
-    desc:'웨이퍼에 산소 가스를 투입하면 표면에 아주 얇은 산화막(SiO₂)이 자라나요. 이 막은 전기가 통하지 않는 절연층이자, 다음 공정에서 회로가 아닌 부분을 보호하는 방패예요. 너무 일찍 끄면 막이 얇고 부실해지고, 너무 늦으면 과열되어 웨이퍼가 타버려요.',
+    fact:'800~1200°C 산화로에서 산소·수증기로 SiO₂ 막을 키우는 열산화 공정이에요.',
+    quiz:{ q:'산화막(SiO₂)은 전기가 잘 통하는 도체다?', a:false, explain:'❌ 아니에요! SiO₂는 전기가 안 통하는 절연체라서, 회로가 아닌 부분을 보호하는 방패 역할을 해요.' },
     howto:'게이지가 차오릅니다. 목표 두께(100nm) 구간에 딱 들어왔을 때 [가스 차단!]을 눌러 멈추세요.',
     mission:'🧪 두께가 차오르고 있다! 정확히 100nm일 때 [가스 차단!]을 눌러라!',
     icon:'furnace' },
   { key:'photo', name:'포토 공정', sub:'마스크 정렬', color:'#38bdf8',
-    desc:'빛에 반응하는 감광액(PR)을 웨이퍼에 바른 뒤, 회로 무늬가 뚫린 "마스크"를 웨이퍼 위 정확한 위치와 각도에 맞춰야 자외선(UV)이 원하는 모양 그대로 회로 패턴을 새겨요. 위치나 각도가 조금만 어긋나도 패턴이 틀어져요.',
+    fact:'스테퍼가 레티클(마스크)을 축소 투영해 노광하고, 최신 칩은 파장 13.5nm EUV까지 써요.',
+    quiz:{ q:'노광할 때 마스크 위치가 아주 조금만 어긋나도 회로 패턴이 틀어진다?', a:true, explain:'⭕ 맞아요! 요즘 회로는 나노미터 단위라서 아주 미세한 오차도 바로 불량으로 이어져요.' },
     howto:'파란 마스크를 드래그해서 점선 목표 위치로 옮기고, 슬라이더로 각도까지 맞춘 뒤 [노광!] 버튼을 누르세요.',
     mission:'🎯 마스크를 드래그하고 회전시켜 점선 목표에 정확히 정렬하라!',
     icon:'mask' },
   { key:'etch', name:'식각 공정', sub:'빗겨 자르기 & 패턴 깎기', color:'#2f6fed',
-    desc:'노광되지 않아 감광액이 씻겨나간 부분, 즉 회로가 아닌 "군더더기"를 부식 가스로 제거해야 원하는 회로 모양만 남아요. 회로선을 살짝이라도 건드리면 그 즉시 칩 전체가 대형 불량이 돼요 — 절묘한 각도로 빗겨가며 깎아내야 해요.',
+    fact:'플라즈마 가스로 옆은 안 번지고 수직으로만 깎아내는 건식 식각(RIE)을 주로 써요.',
+    quiz:{ q:'식각 공정은 회로가 아닌 \'군더더기\' 부분을 깎아내는 공정이다?', a:true, explain:'⭕ 맞아요! 감광액으로 보호되지 않은 부분만 화학 약품이나 플라즈마로 제거해서 회로 모양만 남겨요.' },
     howto:'손가락으로 화면을 문질러 연한 파란 칸(제거할 부분)을 깎아내세요. 진한 파란 회로선은 절대 건드리면 안 돼요! ⚠️ 한 번만 잘못 눌러도 즉시 대형 불량이에요.',
     mission:'✋ 진한 색 회로선을 절대 건드리지 말고 나머지 부분만 문질러 깎아내라!',
     icon:'etch' },
   { key:'iondep', name:'박막증착 & 이온주입', sub:'이온 순간 저격', color:'#7dd3fc',
-    desc:'순수한 실리콘은 사실 전기가 잘 통하지 않아요. 여기에 특정 불순물 이온을 얇은 막 위에 강제로 심어 넣어야(도핑) 비로소 전류를 조절할 수 있는 "반도체"다운 성질을 갖게 돼요. 격자 슬롯 하나하나에 순식간에 이온을 정확히 박아 넣어야 균일한 도핑이 완성돼요.',
+    fact:'CVD·PVD로 박막을 쌓고, 붕소·인 이온을 가속기로 쏴 박아 넣는 도핑을 해요.',
+    quiz:{ q:'순수한 실리콘은 그 자체로 전기가 아주 잘 통한다?', a:false, explain:'❌ 아니에요! 순수 실리콘은 전기가 잘 안 통해서, 불순물 이온을 심어(도핑)줘야 비로소 반도체 성질을 갖게 돼요.' },
     howto:'격자 슬롯이 번쩍이며 나타났다가 순식간에 사라져요. 사라지기 전에 재빨리 탭해서 이온을 명중시키세요. 라운드가 지날수록 더 빨라져요!',
     mission:'⚡ 반짝이는 슬롯을 사라지기 전에 재빨리 탭해서 저격하라!',
     icon:'iongun' },
   { key:'metal', name:'금속 배선 공정', sub:'한붓그리기 회로 연결', color:'#3b82f6',
-    desc:'아무리 좋은 트랜지스터를 잔뜩 만들어놔도, 서로 연결되지 않으면 그냥 "따로 노는 부품 더미"일 뿐이에요. 구리·알루미늄 같은 금속선으로 모든 전극을 이어줘야 비로소 전기가 통하는 하나의 완전한 회로가 완성돼요. 배선이 서로 겹치면 그 즉시 쇼트(단락)가 나요.',
+    fact:'홈을 파고 구리를 도금해 채우는 다마신 공정으로 배선을 10층 넘게 쌓아요.',
+    quiz:{ q:'요즘 반도체 금속 배선은 저항이 낮은 구리를 알루미늄보다 많이 쓴다?', a:true, explain:'⭕ 맞아요! 구리는 저항이 낮아 신호가 더 빠르고 정확하게 전달돼서 다마신 공정으로 구리 배선을 주로 만들어요.' },
     howto:'펜을 떼지 말고 모든 전극 노드를 한붓그리기로 이으세요. 가운데(금색) 노드 2개도 순서 중 알맞은 자리에 끼워 넣어야 하고, 그려진 선이 서로 겹치면 그 순간 실패예요.',
     mission:'✏️ 가운데 노드 2개까지 알맞게 끼워서 한붓그리기로 모두 이어라! 선이 겹치면 쇼트!',
     icon:'circuit' },
   { key:'eds', name:'EDS 공정', sub:'리듬 & 리젝터', color:'#0ea5e9',
-    desc:'EDS(Electrical Die Sorting)는 컨베이어 벨트를 지나가는 칩 하나하나에 실제 전기 신호를 흘려보내 정상적으로 동작하는지 검사하는 최종 전기 테스트예요. 전압 수치를 보고 불량 칩만 재빨리 골라내 쳐내야 해요 — 정상 칩까지 잘못 쳐내면 오히려 손해예요.',
+    fact:'탐침 카드로 칩마다 전기 신호를 흘려 검사하고, 양품 비율이 곧 수율이 돼요.',
+    quiz:{ q:'EDS 검사는 칩을 낱개로 잘라낸(다이싱) 뒤에 진행한다?', a:false, explain:'❌ 아니에요! EDS는 웨이퍼를 자르기 전, 웨이퍼에 붙어있는 상태 그대로 각 칩을 전기적으로 검사해요.' },
     howto:'컨베이어 벨트 위 칩의 전압을 보고, 불량(빨간 테두리)만 탭해서 쳐내세요. 정상(파란 테두리)은 건드리지 말고 그냥 흘려보내세요.',
     mission:'⚡ 벨트를 지나는 불량 칩만 재빨리 탭해서 쳐내라!',
     icon:'tester' },
   { key:'package', name:'패키징 공정', sub:'완충 젤리 캡슐화', color:'#bae6fd',
-    desc:'양품 판정을 받은 칩도 맨몸으로 두면 충격 한 번에 손상돼요. 그래서 보호용 에폭시 젤리 트레이에 담고, 충격이 가해지지 않도록 딱 맞는 압력으로 덮개를 가압 밀봉해야 우리가 아는 완제품 반도체가 돼요. 이게 바로 여러분이 만든 반도체의 마지막 여정이에요!',
+    fact:'칩을 와이어 본딩이나 플립칩으로 연결하고 에폭시로 감싸 완제품을 만들어요.',
+    quiz:{ q:'패키징은 칩을 보호막으로 감싸는 반도체 제조의 마지막 공정이다?', a:true, explain:'⭕ 맞아요! 에폭시로 감싸 충격·습기·먼지로부터 보호해야 우리가 아는 완제품 반도체가 완성돼요.' },
     howto:'칩을 젤리 트레이 안으로 드래그한 뒤, 덮개를 꾹 눌러 목표 압력 구간에서 손을 떼 밀봉하세요.',
     mission:'🍮 칩을 젤리 트레이에 담고, 딱 맞는 압력으로 덮개를 밀봉하라!',
     icon:'package' }
@@ -926,7 +1087,17 @@ function showScreen(id){
   Object.values(screens).forEach(s=>s.classList.remove('active'));
   screens[id].classList.add('active');
   window.scrollTo(0,0);
-  if(id==='screen-title' && audioCtx) startAmbience(0);
+  if(id==='screen-title'){
+    if(audioCtx) startAmbience(0);
+    updateTitleCTA();
+  }
+}
+
+/* keep the title screen's primary button + reset link in sync with saved progress */
+function updateTitleCTA(){
+  const hasProgress = anyProgress();
+  document.getElementById('btn-start').textContent = hasProgress ? '▶ 이어서 하기' : '🚀 공정 시작하기';
+  document.getElementById('btn-reset').style.display = hasProgress ? 'inline-block' : 'none';
 }
 
 /* custom styled confirm modal, replacing the native browser confirm() popup */
@@ -1373,12 +1544,48 @@ function renderExplainOverlay(i){
     <button class="btn ready-btn" id="ov-start">시작 ▶</button>
   `;
   gameArea.appendChild(ov);
-  ov.querySelector('#ov-start').addEventListener('click', ()=>{ ov.remove(); launchMinigame(i); });
+  ov.querySelector('#ov-start').addEventListener('click', ()=>{ ov.remove(); renderQuizOverlay(i); });
+}
+
+function renderQuizOverlay(i){
+  const st = STAGES[i];
+  const q = st.quiz;
+  const ov = document.createElement('div');
+  ov.className = 'stage-overlay ready-overlay';
+  ov.innerHTML = `
+    <div class="spacer"></div>
+    <div class="quiz-tag pixel">🤔 미니 퀴즈</div>
+    <div class="quiz-q">${q.q}</div>
+    <div class="quiz-ox-row">
+      <button class="quiz-ox-btn" id="quiz-o">⭕</button>
+      <button class="quiz-ox-btn" id="quiz-x">❌</button>
+    </div>
+    <div class="quiz-feedback hidden" id="quiz-feedback"></div>
+    <div class="spacer"></div>
+    <button class="btn ready-btn hidden" id="quiz-continue">게임 시작 ▶</button>
+  `;
+  gameArea.appendChild(ov);
+  const oBtn = ov.querySelector('#quiz-o');
+  const xBtn = ov.querySelector('#quiz-x');
+  const feedback = ov.querySelector('#quiz-feedback');
+  const continueBtn = ov.querySelector('#quiz-continue');
+  function answer(picked, val){
+    oBtn.disabled = true; xBtn.disabled = true;
+    const isCorrect = (val === q.a);
+    picked.classList.add(isCorrect ? 'correct' : 'wrong');
+    if(!isCorrect) (q.a ? oBtn : xBtn).classList.add('correct');
+    feedback.innerHTML = `<div class="quiz-verdict ${isCorrect?'correct':'wrong'}">${isCorrect?'정답이에요! 🎉':'아쉬워요!'}</div>${q.explain}`;
+    feedback.classList.remove('hidden');
+    continueBtn.classList.remove('hidden');
+  }
+  oBtn.addEventListener('click', ()=>answer(oBtn, true));
+  xBtn.addEventListener('click', ()=>answer(xBtn, false));
+  continueBtn.addEventListener('click', ()=>{ ov.remove(); launchMinigame(i); });
 }
 
 function launchMinigame(i){
   const st = STAGES[i];
-  gameHint.textContent = st.mission;
+  gameHint.innerHTML = `${st.mission}<span class="fact-line">💡 ${st.fact}</span>`;
   resetGameTimer();
   const module = STAGE_GAMES[st.key];
   activeCleanup = module(gameArea, (score, diag)=>onStageComplete(i, score, diag), { setTimer: setGameTimer, setMsg: msgFn });
@@ -1421,10 +1628,6 @@ function renderCompleteOverlay(i, score){
       <div class="result-stars">${starsFor(score)}</div>
       <div class="result-score">${score}<span style="font-size:20px;"> 점</span></div>
     </div>
-    <div class="rules-card">
-      <div class="rules-title">🔬 실제 공정에서는</div>
-      <div class="rules-text">${st.desc}</div>
-    </div>
     <div class="spacer"></div>
     <div class="btn-row">
       <button class="btn ghost" id="ov-retry">다시 도전</button>
@@ -1460,17 +1663,17 @@ document.getElementById('btn-game-map').addEventListener('click', ()=>{
    ============================================================ */
 document.getElementById('btn-start').addEventListener('click', ()=>{
   ensureAudio();
-  state = freshState(); saveState();
-  enterStage(0);
-});
-document.getElementById('btn-continue').addEventListener('click', ()=>{
-  ensureAudio();
-  let next = state.scores.findIndex(s=>s===null);
-  if(next===-1) next = 0;
-  enterStage(next);
+  if(anyProgress()){
+    let next = state.scores.findIndex(s=>s===null);
+    if(next===-1) next = 0;
+    enterStage(next);
+  }else{
+    state = freshState(); saveState();
+    enterStage(0);
+  }
 });
 document.getElementById('btn-reset').addEventListener('click', ()=>{
-  showConfirm('모든 진행 상황을 초기화할까요?', ()=>{ state = freshState(); saveState(); });
+  showConfirm('모든 진행 상황을 초기화할까요?', ()=>{ state = freshState(); saveState(); updateTitleCTA(); });
 });
 document.getElementById('btn-map-home').addEventListener('click', ()=> showScreen('screen-title'));
 document.getElementById('btn-final-map').addEventListener('click', ()=>{ renderMap(); showScreen('screen-map'); });
@@ -1498,7 +1701,8 @@ function renderFinal(){
   checkRunAchievements(yieldPct, grade);
   resetRankSubmitUI();
   document.getElementById('final-yield-num').innerHTML = `${yieldPct}<span style="font-size:26px;">%</span>`;
-  document.getElementById('final-grade').innerHTML = `<span style="color:${gradeColor};">${grade}등급</span> <span style="font-size:14px;color:var(--text-dim);font-weight:500;">— ${remark}</span>`;
+  document.getElementById('final-grade').innerHTML = `<span style="color:${gradeColor};">${grade}등급</span>`;
+  document.getElementById('final-remark').textContent = remark;
   document.getElementById('final-total').textContent = `최종 수율 ${yieldPct}% · 8/8 공정 완료`;
   document.getElementById('final-list').innerHTML = STAGES.map((st,i)=>
     `<div><b>${i+1}. ${st.name}</b> — ${scores[i]===null?'-':scores[i]+'점 '+starsFor(scores[i])}</div>`
@@ -1773,7 +1977,7 @@ function renderMemIntro(){
   memArea.appendChild(ov);
   ov.querySelector('#mem-back').addEventListener('click', ()=>{
     stopAmbience();
-    showScreen('screen-title');
+    showScreen('screen-minigames');
   });
   ov.querySelector('#mem-start').addEventListener('click', ()=>{
     ov.remove();
@@ -1886,7 +2090,7 @@ function renderMemResult(score, moves){
   if(isNewBest) playSuccessChime(0);
   ov.querySelector('#mem-result-back').addEventListener('click', ()=>{
     stopAmbience();
-    showScreen('screen-title');
+    showScreen('screen-minigames');
   });
   ov.querySelector('#mem-retry').addEventListener('click', ()=>{
     ov.remove();
@@ -1895,14 +2099,517 @@ function renderMemResult(score, moves){
 }
 
 document.getElementById('btn-open-mem').addEventListener('click', ()=>{
+  showScreen('screen-minigames');
+});
+document.getElementById('btn-mg-back').addEventListener('click', ()=> showScreen('screen-title'));
+document.getElementById('mg-open-mem').addEventListener('click', ()=>{
   ensureAudio();
   startAmbience(4);
   showScreen('screen-memory');
   renderMemIntro();
 });
+document.getElementById('mg-open-defect').addEventListener('click', ()=>{
+  ensureAudio();
+  startAmbience(3);
+  showScreen('screen-defect');
+  renderDefectIntro();
+});
 document.getElementById('btn-mem-back').addEventListener('click', ()=>{
   stopAmbience();
-  showScreen('screen-title');
+  showScreen('screen-minigames');
+});
+
+/* ============================================================
+   7.8 EXTRA MINIGAME: Defect Spot
+   Standalone — not part of the 8-stage story. 4 rounds of escalating
+   difficulty; find the ⚠️ defect cells in the grid before time runs out.
+   ============================================================ */
+const DEFECT_BEST_KEY = 'sili_fab_defect_best';
+const DEFECT_ROUNDS = [
+  { cells:9,  cols:3, defects:2, time:7 },
+  { cells:12, cols:4, defects:3, time:7 },
+  { cells:16, cols:4, defects:4, time:6 },
+  { cells:16, cols:4, defects:5, time:5.5 }
+];
+const defectArea = document.getElementById('defect-stage-area');
+const defectTimerEl = document.getElementById('defect-timer');
+const defectTimerText = document.getElementById('defect-timer-text');
+const defectTimerFill = document.getElementById('defect-timer-bar-fill');
+const defectTimerTrack = document.getElementById('defect-timer-bar-track');
+let defectTimerDanger = false;
+
+function getDefectBest(){ try{ return parseInt(localStorage.getItem(DEFECT_BEST_KEY)||'0',10)||0; }catch(e){ return 0; } }
+function setDefectBest(v){ try{ localStorage.setItem(DEFECT_BEST_KEY, String(v)); }catch(e){} }
+
+function resetDefectTimer(){
+  defectTimerDanger = false;
+  defectTimerEl.classList.remove('timer-danger');
+  defectTimerTrack.classList.remove('timer-danger');
+  defectArea.classList.remove('danger-flash');
+  defectTimerText.textContent = '--';
+  defectTimerFill.style.width = '100%';
+}
+function setDefectTimer(remaining, total){
+  const clamped = Math.max(0, remaining);
+  const fraction = total>0 ? clamped/total : 1;
+  defectTimerText.textContent = Math.ceil(clamped)+'s';
+  defectTimerFill.style.width = Math.max(0, Math.min(100, fraction*100))+'%';
+  const inDanger = fraction <= DANGER_FRACTION;
+  if(inDanger && !defectTimerDanger){
+    defectTimerDanger = true;
+    defectTimerEl.classList.add('timer-danger');
+    defectTimerTrack.classList.add('timer-danger');
+    defectArea.classList.add('danger-flash');
+  } else if(!inDanger && defectTimerDanger){
+    defectTimerDanger = false;
+    defectTimerEl.classList.remove('timer-danger');
+    defectTimerTrack.classList.remove('timer-danger');
+    defectArea.classList.remove('danger-flash');
+  }
+}
+
+function renderDefectIntro(){
+  defectArea.innerHTML = '';
+  resetDefectTimer();
+  const best = getDefectBest();
+  const ov = document.createElement('div');
+  ov.className = 'stage-overlay ready-overlay';
+  ov.innerHTML = `
+    <div class="spacer"></div>
+    <div class="ready-icon" style="font-size:60px;text-align:center;line-height:1;">🔍</div>
+    <h2 style="text-align:center;margin:10px 0 0;font-size:20px;">결함 탐지</h2>
+    <div class="rules-card">
+      <div class="rules-title">🔬 결함 칩을 찾아 탭하세요!</div>
+      <div class="rules-text">격자 속에 ⚠️로 표시된 결함 칩이 숨어있어요. 시간 안에 결함 칩만 모두 찾아 탭하세요. 정상 칩을 잘못 누르면 감점! 라운드가 지날수록 격자가 커지고 더 어려워져요. 총 4라운드.</div>
+    </div>
+    <div class="section-label" style="text-align:center;">🏅 내 최고 점수: ${best}점</div>
+    <div class="spacer"></div>
+    <div class="btn-row">
+      <button class="btn ghost" id="defect-back">◀ 그만하기</button>
+      <button class="btn" id="defect-start" style="flex:1;">🔍 게임 시작!</button>
+    </div>
+  `;
+  defectArea.appendChild(ov);
+  ov.querySelector('#defect-back').addEventListener('click', ()=>{
+    stopAmbience();
+    showScreen('screen-minigames');
+  });
+  ov.querySelector('#defect-start').addEventListener('click', ()=>{
+    ov.remove();
+    startDefectGame();
+  });
+}
+
+function startDefectGame(){
+  defectArea.innerHTML = '';
+  let round = 0, totalScore = 0, tickId = null;
+
+  function playRound(){
+    const cfg = DEFECT_ROUNDS[round];
+    const defectSet = new Set();
+    while(defectSet.size < cfg.defects) defectSet.add(Math.floor(Math.random()*cfg.cells));
+    let found = 0, misses = 0, ended = false;
+
+    defectArea.innerHTML = `
+      <div class="exp-status">${round+1} / ${DEFECT_ROUNDS.length} 라운드</div>
+      <div class="spot-grid" id="dspot-grid" style="grid-template-columns:repeat(${cfg.cols},1fr);"></div>
+    `;
+    const grid = defectArea.querySelector('#dspot-grid');
+    for(let c=0;c<cfg.cells;c++){
+      const cell = document.createElement('div');
+      cell.className = 'spot-cell';
+      cell.textContent = defectSet.has(c) ? '⚠️' : '';
+      cell.dataset.i = c;
+      grid.appendChild(cell);
+    }
+
+    let remaining = cfg.time;
+    resetDefectTimer();
+    setDefectTimer(remaining, cfg.time);
+    tickId = setInterval(()=>{
+      remaining -= 0.1;
+      setDefectTimer(Math.max(0, remaining), cfg.time);
+      if(remaining <= 0){ clearInterval(tickId); finishRound(); }
+    }, 100);
+
+    grid.addEventListener('click', (e)=>{
+      if(ended) return;
+      const cell = e.target.closest('.spot-cell');
+      if(!cell || cell.style.pointerEvents==='none') return;
+      const i = +cell.dataset.i;
+      cell.style.pointerEvents = 'none';
+      ensureAudio();
+      if(defectSet.has(i)){
+        cell.classList.add('hit-good');
+        if(audioCtx) playTone(700, audioCtx.currentTime, 0.06, 'square', 0.08);
+        found++;
+        if(found>=cfg.defects){ clearInterval(tickId); finishRound(); }
+      } else {
+        cell.classList.add('hit-bad');
+        playDangerBeep();
+        misses++;
+      }
+    });
+
+    function finishRound(){
+      if(ended) return;
+      ended = true;
+      const acc = Math.max(0, found/cfg.defects - misses*0.15);
+      totalScore += acc;
+      round++;
+      setTimeout(()=>{
+        if(round >= DEFECT_ROUNDS.length){
+          renderDefectResult(Math.round(totalScore/DEFECT_ROUNDS.length*100));
+        } else {
+          playRound();
+        }
+      }, 900);
+    }
+  }
+  playRound();
+}
+
+function renderDefectResult(score){
+  const best = getDefectBest();
+  const isNewBest = score > best;
+  if(isNewBest) setDefectBest(score);
+  defectArea.innerHTML = '';
+  resetDefectTimer();
+  const ov = document.createElement('div');
+  ov.className = 'stage-overlay';
+  ov.innerHTML = `
+    <div class="spacer"></div>
+    <div class="result-hero">
+      <div class="badge">${isNewBest ? '🎉 신기록!' : '결함 탐지 완료'}</div>
+      <div class="result-stars">${starsFor(score)}</div>
+      <div class="result-score">${score}<span style="font-size:20px;"> 점</span></div>
+    </div>
+    <div class="rules-card">
+      <div class="rules-title">📋 결과</div>
+      <div class="rules-text">4라운드 결함 탐지를 완료했어요.<br>🏅 내 최고 점수: ${isNewBest ? score : best}점${isNewBest ? ' — 방금 갱신했어요!' : ''}</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="btn-row">
+      <button class="btn ghost" id="defect-result-back">◀ 미니게임 목록</button>
+      <button class="btn" id="defect-retry" style="flex:1;">🔁 다시 도전</button>
+    </div>
+  `;
+  defectArea.appendChild(ov);
+  if(isNewBest) playSuccessChime(0);
+  ov.querySelector('#defect-result-back').addEventListener('click', ()=>{
+    stopAmbience();
+    showScreen('screen-minigames');
+  });
+  ov.querySelector('#defect-retry').addEventListener('click', ()=>{
+    ov.remove();
+    startDefectGame();
+  });
+}
+
+document.getElementById('btn-defect-back').addEventListener('click', ()=>{
+  stopAmbience();
+  showScreen('screen-minigames');
+});
+
+/* ============================================================
+   7.9 EXTRA MINIGAME ENGINES — 3 reusable mechanics, each themed
+   per-process and offered as standalone games in the minigame hub.
+   Same signature as STAGE_GAMES: function(container, onFinish, ctx)
+   ============================================================ */
+
+/* Engine A: timing zone — stop a moving marker inside a shrinking target zone */
+function timingZoneGame(cfg){
+  return function(container, onFinish){
+    let round = 0, totalScore = 0, raf = null, cleanedUp = false;
+    function playRound(){
+      const r = cfg.rounds[round];
+      let hit = false, startTime = null;
+      container.innerHTML = `
+        <div class="exp-status">${round+1} / ${cfg.rounds.length} 라운드 · ${cfg.label}</div>
+        <div class="tz-track" id="tz-track">
+          <div class="tz-zone" style="left:${50-r.zoneWidth/2}%;width:${r.zoneWidth}%;"></div>
+          <div class="tz-marker" id="tz-marker"></div>
+        </div>
+        <div style="text-align:center;margin-top:20px;">
+          <button class="btn ready-btn" id="tz-stop" style="width:min(220px,72vw);">${cfg.actionLabel}</button>
+        </div>
+      `;
+      const marker = container.querySelector('#tz-marker');
+      const track = container.querySelector('#tz-track');
+      const stopBtn = container.querySelector('#tz-stop');
+      function tick(ts){
+        if(cleanedUp || hit) return;
+        if(!startTime) startTime = ts;
+        const phase = ((ts-startTime) % r.speed) / r.speed;
+        const pos = phase < 0.5 ? phase*2*100 : (1-phase)*2*100;
+        marker.style.left = pos + '%';
+        raf = requestAnimationFrame(tick);
+      }
+      raf = requestAnimationFrame(tick);
+      stopBtn.addEventListener('click', ()=>{
+        if(hit) return;
+        hit = true;
+        cancelAnimationFrame(raf);
+        const pos = parseFloat(marker.style.left) || 0;
+        const dist = Math.abs(pos-50);
+        const inZone = dist <= r.zoneWidth/2;
+        totalScore += inZone ? Math.max(40, 100-dist*3) : Math.max(0, 40-dist);
+        track.style.borderColor = inZone ? 'var(--good)' : 'var(--bad)';
+        setTimeout(()=>{
+          if(cleanedUp) return;
+          round++;
+          if(round>=cfg.rounds.length) onFinish(Math.round(totalScore/cfg.rounds.length));
+          else playRound();
+        }, 700);
+      });
+    }
+    playRound();
+    return function cleanup(){ cleanedUp=true; if(raf) cancelAnimationFrame(raf); };
+  };
+}
+
+/* Engine B: quick tap combo — tap flashing targets before they vanish, chain a combo */
+function quickTapComboGame(cfg){
+  return function(container, onFinish){
+    let hits=0, spawned=0, combo=0, cleanedUp=false;
+    container.innerHTML = `
+      <div class="exp-status">${cfg.label} · <span id="qtc-combo">콤보 0</span></div>
+      <div class="qtc-area" id="qtc-area"></div>
+    `;
+    const area = container.querySelector('#qtc-area');
+    const comboEl = container.querySelector('#qtc-combo');
+    function spawnTarget(){
+      if(cleanedUp) return;
+      if(spawned>=cfg.totalTargets){ onFinish(Math.round((hits/cfg.totalTargets)*100)); return; }
+      spawned++;
+      const t = document.createElement('div');
+      t.className = 'qtc-target';
+      t.style.left = (12+Math.random()*76)+'%';
+      t.style.top = (12+Math.random()*76)+'%';
+      area.appendChild(t);
+      const life = Math.max(cfg.minLife, cfg.startLife - spawned*cfg.shrinkPerSpawn);
+      let tapped = false;
+      const timer = setTimeout(()=>{
+        if(tapped || cleanedUp) return;
+        t.remove(); combo = 0; comboEl.textContent = '콤보 0';
+        spawnTarget();
+      }, life);
+      t.addEventListener('click', ()=>{
+        if(tapped || cleanedUp) return;
+        tapped = true;
+        clearTimeout(timer);
+        hits++; combo++;
+        comboEl.textContent = '콤보 '+combo;
+        t.classList.add('qtc-hit');
+        setTimeout(()=>{ if(!cleanedUp) t.remove(); }, 180);
+        spawnTarget();
+      });
+    }
+    spawnTarget();
+    return function cleanup(){ cleanedUp = true; };
+  };
+}
+
+/* Engine C: drag to target — drag a piece onto a randomly placed target before advancing */
+function dragTargetGame(cfg){
+  return function(container, onFinish){
+    let round=0, totalScore=0, cleanedUp=false;
+    function playRound(){
+      const r = cfg.rounds[round];
+      const tx = 20+Math.random()*60, ty = 22+Math.random()*56;
+      container.innerHTML = `
+        <div class="exp-status">${round+1} / ${cfg.rounds.length} 라운드 · ${cfg.label}</div>
+        <div class="dtg-area" id="dtg-area">
+          <div class="dtg-target" style="left:${tx}%;top:${ty}%;"></div>
+          <div class="dtg-piece" id="dtg-piece" style="left:50%;top:88%;"></div>
+        </div>
+      `;
+      const area = container.querySelector('#dtg-area');
+      const piece = container.querySelector('#dtg-piece');
+      let dragging = false, done = false;
+      function toPct(clientX, clientY){
+        const rect = area.getBoundingClientRect();
+        return { x:(clientX-rect.left)/rect.width*100, y:(clientY-rect.top)/rect.height*100 };
+      }
+      function settle(clientX, clientY){
+        if(!dragging || done) return;
+        done = true; dragging = false;
+        const p = toPct(clientX, clientY);
+        const dist = Math.hypot(p.x-tx, p.y-ty);
+        const inZone = dist <= r.tolerance;
+        totalScore += inZone ? Math.max(50, 100-dist*4) : Math.max(0, 40-dist);
+        piece.style.left = Math.max(0,Math.min(100,p.x))+'%';
+        piece.style.top = Math.max(0,Math.min(100,p.y))+'%';
+        piece.style.borderColor = inZone ? 'var(--good)' : 'var(--bad)';
+        setTimeout(()=>{
+          if(cleanedUp) return;
+          round++;
+          if(round>=cfg.rounds.length) onFinish(Math.round(totalScore/cfg.rounds.length));
+          else playRound();
+        }, 600);
+      }
+      piece.addEventListener('pointerdown', (e)=>{ dragging=true; try{ piece.setPointerCapture(e.pointerId); }catch(err){} });
+      piece.addEventListener('pointermove', (e)=>{
+        if(!dragging || done) return;
+        const p = toPct(e.clientX, e.clientY);
+        piece.style.left = Math.max(0,Math.min(100,p.x))+'%';
+        piece.style.top = Math.max(0,Math.min(100,p.y))+'%';
+      });
+      piece.addEventListener('pointerup', (e)=> settle(e.clientX, e.clientY));
+    }
+    playRound();
+    return function cleanup(){ cleanedUp=true; };
+  };
+}
+
+const EXTRA_GAMES = {
+  wafer_timing:{
+    icon:'🔪', name:'잉곳 정속 슬라이스', color:'#93c5fd',
+    intro:'다이아몬드 톱이 초록 구간을 지날 때 정확히 [싹둑!]을 눌러야 균일한 두께로 잘려요. 라운드가 지날수록 구간이 좁아지고 빨라져요!',
+    play: timingZoneGame({ label:'잉곳 정속 슬라이스', actionLabel:'✂️ 싹둑!',
+      rounds:[{zoneWidth:36,speed:1400},{zoneWidth:26,speed:1150},{zoneWidth:18,speed:950},{zoneWidth:12,speed:800}] })
+  },
+  oxidation_timing:{
+    icon:'🌡️', name:'산화막 두께 맞추기', color:'#60a5fa',
+    intro:'목표 두께 구간에서 정확히 [가스 차단!]을 눌러야 균일한 절연막이 만들어져요. 라운드가 지날수록 구간이 좁아지고 빨라져요!',
+    play: timingZoneGame({ label:'산화막 두께 맞추기', actionLabel:'🧪 가스 차단!',
+      rounds:[{zoneWidth:34,speed:1300},{zoneWidth:24,speed:1050},{zoneWidth:16,speed:900},{zoneWidth:10,speed:750}] })
+  },
+  photo_drag:{
+    icon:'🎯', name:'마스크 스피드 정렬', color:'#38bdf8',
+    intro:'파란 마스크 조각을 점선 목표 위치로 재빨리 드래그해서 정렬하세요. 라운드가 지날수록 정렬 허용 오차가 줄어들어요!',
+    play: dragTargetGame({ label:'마스크 스피드 정렬', rounds:[{tolerance:16},{tolerance:12},{tolerance:9},{tolerance:6}] })
+  },
+  iondep_combo:{
+    icon:'⚡', name:'이온 콤보 저격', color:'#7dd3fc',
+    intro:'반짝이는 슬롯이 무작위 위치에 나타났다 사라져요. 사라지기 전에 재빨리 탭해서 콤보를 이어가며 균일한 도핑을 완성하세요!',
+    play: quickTapComboGame({ label:'이온 콤보 저격', totalTargets:15, startLife:1100, minLife:420, shrinkPerSpawn:45 })
+  },
+  metal_drag:{
+    icon:'✏️', name:'배선 노드 스피드 연결', color:'#3b82f6',
+    intro:'전극 노드가 나타나는 위치로 배선 커넥터를 재빨리 드래그하세요. 라운드가 지날수록 허용 오차가 줄어들어요!',
+    play: dragTargetGame({ label:'배선 노드 스피드 연결', rounds:[{tolerance:15},{tolerance:11},{tolerance:8},{tolerance:6}] })
+  },
+  eds_combo:{
+    icon:'🔬', name:'불량 칩 스피드 검사', color:'#0ea5e9',
+    intro:'컨베이어를 스쳐가는 불량 칩이 무작위 위치에 나타났다 사라져요. 놓치지 않고 빠르게 탭해서 쳐내 수율을 지키세요!',
+    play: quickTapComboGame({ label:'불량 칩 스피드 검사', totalTargets:16, startLife:1000, minLife:380, shrinkPerSpawn:40 })
+  }
+};
+
+/* wire the 6 EXTRA_GAMES cards into the hub grid */
+const mgGrid = document.getElementById('mg-grid');
+Object.keys(EXTRA_GAMES).forEach(key=>{
+  const g = EXTRA_GAMES[key];
+  const btn = document.createElement('button');
+  btn.className = 'title-menu-item';
+  btn.id = 'mg-open-'+key;
+  btn.innerHTML = `
+    <span class="title-menu-icon" style="width:60px;height:60px;font-size:28px;background:${g.color}22;">${g.icon}</span>
+    <span class="title-menu-label" style="font-size:13.5px;">${g.name}</span>
+  `;
+  btn.addEventListener('click', ()=> openExtraGame(key));
+  mgGrid.appendChild(btn);
+});
+
+const extraArea = document.getElementById('extra-stage-area');
+const extraTitleEl = document.getElementById('extra-title');
+let currentExtraKey = null;
+
+function getExtraBest(key){ try{ return parseInt(localStorage.getItem('sili_fab_extra_'+key+'_best')||'0',10)||0; }catch(e){ return 0; } }
+function setExtraBest(key, v){ try{ localStorage.setItem('sili_fab_extra_'+key+'_best', String(v)); }catch(e){} }
+
+function openExtraGame(key){
+  currentExtraKey = key;
+  const g = EXTRA_GAMES[key];
+  ensureAudio();
+  startAmbience(0);
+  extraTitleEl.textContent = `${g.icon} ${g.name}`;
+  showScreen('screen-extra');
+  renderExtraIntro(key);
+}
+
+function renderExtraIntro(key){
+  const g = EXTRA_GAMES[key];
+  extraArea.innerHTML = '';
+  const best = getExtraBest(key);
+  const ov = document.createElement('div');
+  ov.className = 'stage-overlay ready-overlay';
+  ov.innerHTML = `
+    <div class="spacer"></div>
+    <div class="ready-icon" style="font-size:60px;text-align:center;line-height:1;">${g.icon}</div>
+    <h2 style="text-align:center;margin:10px 0 0;font-size:20px;">${g.name}</h2>
+    <div class="rules-card">
+      <div class="rules-title">🔬 게임 방법</div>
+      <div class="rules-text">${g.intro}</div>
+    </div>
+    <div class="section-label" style="text-align:center;">🏅 내 최고 점수: ${best}점</div>
+    <div class="spacer"></div>
+    <div class="btn-row">
+      <button class="btn ghost" id="extra-back-btn">◀ 그만하기</button>
+      <button class="btn" id="extra-start-btn" style="flex:1;">${g.icon} 게임 시작!</button>
+    </div>
+  `;
+  extraArea.appendChild(ov);
+  ov.querySelector('#extra-back-btn').addEventListener('click', ()=>{
+    stopAmbience();
+    showScreen('screen-minigames');
+  });
+  ov.querySelector('#extra-start-btn').addEventListener('click', ()=>{
+    ov.remove();
+    startExtraGame(key);
+  });
+}
+
+let extraCleanup = null;
+function startExtraGame(key){
+  extraArea.innerHTML = '';
+  if(extraCleanup){ try{ extraCleanup(); }catch(e){} extraCleanup = null; }
+  extraCleanup = EXTRA_GAMES[key].play(extraArea, (score)=> renderExtraResult(key, Math.max(0,Math.min(100,Math.round(score)))));
+}
+
+function renderExtraResult(key, score){
+  if(extraCleanup){ try{ extraCleanup(); }catch(e){} extraCleanup = null; }
+  const g = EXTRA_GAMES[key];
+  const best = getExtraBest(key);
+  const isNewBest = score > best;
+  if(isNewBest) setExtraBest(key, score);
+  extraArea.innerHTML = '';
+  const ov = document.createElement('div');
+  ov.className = 'stage-overlay';
+  ov.innerHTML = `
+    <div class="spacer"></div>
+    <div class="result-hero">
+      <div class="badge">${isNewBest ? '🎉 신기록!' : g.name+' 완료'}</div>
+      <div class="result-stars">${starsFor(score)}</div>
+      <div class="result-score">${score}<span style="font-size:20px;"> 점</span></div>
+    </div>
+    <div class="rules-card">
+      <div class="rules-title">📋 결과</div>
+      <div class="rules-text">🏅 내 최고 점수: ${isNewBest ? score : best}점${isNewBest ? ' — 방금 갱신했어요!' : ''}</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="btn-row">
+      <button class="btn ghost" id="extra-result-back">◀ 미니게임 목록</button>
+      <button class="btn" id="extra-retry" style="flex:1;">🔁 다시 도전</button>
+    </div>
+  `;
+  extraArea.appendChild(ov);
+  if(isNewBest) playSuccessChime(0);
+  ov.querySelector('#extra-result-back').addEventListener('click', ()=>{
+    stopAmbience();
+    showScreen('screen-minigames');
+  });
+  ov.querySelector('#extra-retry').addEventListener('click', ()=>{
+    ov.remove();
+    startExtraGame(key);
+  });
+}
+
+document.getElementById('btn-extra-back').addEventListener('click', ()=>{
+  if(extraCleanup){ try{ extraCleanup(); }catch(e){} extraCleanup = null; }
+  stopAmbience();
+  showScreen('screen-minigames');
 });
 
 /* ============================================================
@@ -3093,7 +3800,7 @@ STAGE_GAMES.package = function(container, onFinish, ctx){
    9. INIT
    ============================================================ */
 state = loadState();
-document.getElementById('btn-continue').style.display = anyProgress() ? 'inline-block' : 'none';
+updateTitleCTA();
 
 })();
 </script>
