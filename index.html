@@ -535,6 +535,47 @@ body{
   cursor:grab;box-shadow:0 3px 8px rgba(0,0,0,.3);touch-action:none;
 }
 
+/* ---------- extra minigame engine: hold & balance ---------- */
+.hb-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;flex:1;justify-content:center;padding:10px;}
+.hb-track{
+  position:relative;width:56px;height:210px;border-radius:14px;
+  background:#fff5fa;border:3px solid var(--line);overflow:hidden;
+  transition:border-color .15s ease;
+}
+.hb-zone{position:absolute;left:0;right:0;background:rgba(46,204,113,.28);border-top:2px dashed var(--good);border-bottom:2px dashed var(--good);}
+.hb-fill{position:absolute;left:0;right:0;bottom:0;height:0%;background:linear-gradient(0deg,var(--accent),var(--accent2));transition:height .06s linear;}
+.hb-progress{font-size:14.5px;font-weight:700;color:var(--text-dim);}
+
+/* ---------- extra minigame engine: trace & avoid ---------- */
+.tr-area{position:relative;flex:1;min-height:260px;margin:8px 16px;touch-action:none;background:#fff5fa;border:2px solid var(--line);border-radius:14px;}
+.tr-start,.tr-end{position:absolute;left:50%;width:16px;height:16px;border-radius:50%;transform:translate(-50%,-50%);}
+.tr-start{background:var(--accent2);}
+.tr-end{background:var(--gold);}
+.tr-obstacle{position:absolute;width:36px;height:36px;border-radius:50%;background:rgba(225,29,72,.22);border:2px solid var(--bad);transform:translate(-50%,-50%);}
+.tr-dot{
+  position:absolute;width:24px;height:24px;border-radius:50%;
+  background:var(--accent);border:3px solid var(--line);
+  transform:translate(-50%,-50%);cursor:grab;touch-action:none;
+}
+.tr-dot.tr-fail{background:var(--bad);}
+
+/* ---------- extra minigame engine: conveyor ---------- */
+.cv-belt{
+  position:relative;flex:1;min-height:210px;margin:10px 4px;overflow:hidden;
+  background:repeating-linear-gradient(90deg,#e2ecff 0 18px,#d3e2ff 18px 20px);
+  border:2px solid var(--line);border-radius:10px;touch-action:none;
+}
+.cv-item{
+  position:absolute;width:52px;height:52px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  background:#26375f;border:3px solid var(--accent2);cursor:pointer;
+  transform:translateY(-50%);touch-action:none;user-select:none;
+}
+.cv-item.cv-bad{border-color:var(--bad);}
+.cv-item.cv-good{border-color:var(--good);}
+.cv-item.cv-hit-good{animation:edsPop .22s ease forwards;}
+.cv-item.cv-hit-bad{animation:edsShrink .22s ease forwards;}
+
 /* stage4 drag-etch */
 .etch-warning{
   margin:10px 16px 0;padding:10px 14px;border-radius:10px;
@@ -2462,6 +2503,168 @@ function dragTargetGame(cfg){
   };
 }
 
+/* Engine D: hold & balance — hold a button to raise a gauge, release to let it fall,
+   keep it inside the target band for a cumulative goal time before the round expires */
+function holdBalanceGame(cfg){
+  return function(container, onFinish){
+    let round=0, totalScore=0, cleanedUp=false, tickId=null;
+    function playRound(){
+      const r = cfg.rounds[round];
+      let level = 15, held = 0, roundElapsed = 0, pressing = false, done = false;
+      container.innerHTML = `
+        <div class="exp-status">${round+1} / ${cfg.rounds.length} 라운드 · ${cfg.label}</div>
+        <div class="hb-wrap">
+          <div class="hb-track" id="hb-track">
+            <div class="hb-zone" style="bottom:${r.band[0]}%;height:${r.band[1]-r.band[0]}%;"></div>
+            <div class="hb-fill" id="hb-fill"></div>
+          </div>
+          <div class="hb-progress" id="hb-progress">유지 ${held.toFixed(1)} / ${r.holdGoal}s</div>
+          <button class="btn ready-btn" id="hb-press" style="width:min(220px,72vw);">${cfg.actionLabel}</button>
+        </div>
+      `;
+      const fill = container.querySelector('#hb-fill');
+      const track = container.querySelector('#hb-track');
+      const progressEl = container.querySelector('#hb-progress');
+      const pressBtn = container.querySelector('#hb-press');
+      const tickMs = 60;
+      tickId = setInterval(()=>{
+        if(done) return;
+        roundElapsed += tickMs/1000;
+        level += (pressing ? r.rise : -r.fall) * (tickMs/1000);
+        level = Math.max(0, Math.min(100, level));
+        fill.style.height = level+'%';
+        const inBand = level>=r.band[0] && level<=r.band[1];
+        track.style.borderColor = inBand ? 'var(--good)' : 'var(--line)';
+        if(inBand) held += tickMs/1000;
+        progressEl.textContent = `유지 ${held.toFixed(1)} / ${r.holdGoal}s`;
+        if(held >= r.holdGoal) finish(true);
+        else if(roundElapsed >= r.roundTime) finish(false);
+      }, tickMs);
+      pressBtn.addEventListener('pointerdown', ()=>{ pressing=true; });
+      pressBtn.addEventListener('pointerup', ()=>{ pressing=false; });
+      pressBtn.addEventListener('pointerleave', ()=>{ pressing=false; });
+      function finish(success){
+        if(done) return;
+        done = true;
+        clearInterval(tickId);
+        totalScore += success ? 100 : Math.round((held/r.holdGoal)*100);
+        setTimeout(()=>{
+          if(cleanedUp) return;
+          round++;
+          if(round>=cfg.rounds.length) onFinish(Math.round(totalScore/cfg.rounds.length));
+          else playRound();
+        }, 700);
+      }
+    }
+    playRound();
+    return function cleanup(){ cleanedUp=true; if(tickId) clearInterval(tickId); };
+  };
+}
+
+/* Engine E: trace & avoid — drag a dot from top to bottom around static obstacles */
+function traceAvoidGame(cfg){
+  return function(container, onFinish){
+    let round=0, totalScore=0, cleanedUp=false;
+    function playRound(){
+      const r = cfg.rounds[round];
+      const obstacles = [];
+      for(let i=0;i<r.obstacles;i++){
+        obstacles.push({ x: 20+Math.random()*60, y: 15+(i+1)*(70/(r.obstacles+1)) });
+      }
+      container.innerHTML = `
+        <div class="exp-status">${round+1} / ${cfg.rounds.length} 라운드 · ${cfg.label}</div>
+        <div class="tr-area" id="tr-area">
+          <div class="tr-start" style="top:6%;"></div>
+          <div class="tr-end" style="top:92%;"></div>
+          ${obstacles.map(o=>`<div class="tr-obstacle" style="left:${o.x}%;top:${o.y}%;"></div>`).join('')}
+          <div class="tr-dot" id="tr-dot" style="left:50%;top:6%;"></div>
+        </div>
+      `;
+      const area = container.querySelector('#tr-area');
+      const dot = container.querySelector('#tr-dot');
+      let dragging=false, failed=false, done=false;
+      function toPct(cx,cy){ const rc=area.getBoundingClientRect(); return {x:(cx-rc.left)/rc.width*100, y:(cy-rc.top)/rc.height*100}; }
+      function checkHit(px,py){ return obstacles.some(o=> Math.hypot(px-o.x, py-o.y) < r.tolerance); }
+      function finish(){
+        if(done) return; done=true; dragging=false;
+        totalScore += failed ? 30 : 100;
+        setTimeout(()=>{
+          if(cleanedUp) return;
+          round++;
+          if(round>=cfg.rounds.length) onFinish(Math.round(totalScore/cfg.rounds.length));
+          else playRound();
+        }, 600);
+      }
+      dot.addEventListener('pointerdown', (e)=>{ dragging=true; try{ dot.setPointerCapture(e.pointerId); }catch(err){} });
+      dot.addEventListener('pointermove', (e)=>{
+        if(!dragging||done) return;
+        const p = toPct(e.clientX, e.clientY);
+        const px = Math.max(0,Math.min(100,p.x)), py = Math.max(0,Math.min(100,p.y));
+        dot.style.left = px+'%';
+        dot.style.top = py+'%';
+        if(!failed && checkHit(px,py)){ failed = true; dot.classList.add('tr-fail'); }
+        if(py >= 88) finish();
+      });
+      dot.addEventListener('pointerup', ()=>{ dragging=false; });
+    }
+    playRound();
+    return function cleanup(){ cleanedUp=true; };
+  };
+}
+
+/* Engine F: conveyor — items scroll across a belt; tap only the defective ones in time */
+function conveyorGame(cfg){
+  return function(container, onFinish){
+    let spawned=0, correct=0, wrong=0, totalBad=0, cleanedUp=false, spawnTimer=null;
+    container.innerHTML = `
+      <div class="exp-status">${cfg.label} · 남은 개수: <span id="cv-remain">${cfg.totalItems}</span></div>
+      <div class="cv-belt" id="cv-belt"></div>
+    `;
+    const belt = container.querySelector('#cv-belt');
+    const remainEl = container.querySelector('#cv-remain');
+    function spawnItem(){
+      if(cleanedUp) return;
+      if(spawned>=cfg.totalItems){
+        setTimeout(()=>{ if(!cleanedUp) finish(); }, cfg.speedMs+300);
+        return;
+      }
+      spawned++;
+      remainEl.textContent = cfg.totalItems - spawned;
+      const isBad = Math.random() < cfg.badRatio;
+      if(isBad) totalBad++;
+      const el = document.createElement('div');
+      el.className = 'cv-item ' + (isBad ? 'cv-bad' : 'cv-good');
+      el.textContent = isBad ? '⚠️' : '✔️';
+      el.style.top = (20+Math.random()*60)+'%';
+      el.style.left = '100%';
+      belt.appendChild(el);
+      requestAnimationFrame(()=>{
+        el.style.transition = `left ${cfg.speedMs}ms linear`;
+        el.style.left = '-12%';
+      });
+      let tapped = false;
+      el.addEventListener('click', ()=>{
+        if(tapped || cleanedUp) return;
+        tapped = true;
+        if(isBad){ correct++; el.classList.add('cv-hit-good'); }
+        else { wrong++; el.classList.add('cv-hit-bad'); }
+        setTimeout(()=>{ if(!cleanedUp) el.remove(); }, 220);
+      });
+      setTimeout(()=>{
+        if(!tapped && !cleanedUp) el.remove();
+      }, cfg.speedMs);
+      spawnTimer = setTimeout(spawnItem, cfg.spawnInterval);
+    }
+    function finish(){
+      if(cleanedUp) return;
+      const score = totalBad>0 ? Math.round((correct/totalBad)*100 - wrong*8) : 100;
+      onFinish(Math.max(0, Math.min(100, score)));
+    }
+    spawnItem();
+    return function cleanup(){ cleanedUp = true; clearTimeout(spawnTimer); belt.innerHTML=''; };
+  };
+}
+
 const EXTRA_GAMES = {
   wafer_timing:{
     icon:'🔪', name:'잉곳 정속 슬라이스', color:'#93c5fd',
@@ -2469,11 +2672,16 @@ const EXTRA_GAMES = {
     play: timingZoneGame({ label:'잉곳 정속 슬라이스', actionLabel:'✂️ 싹둑!',
       rounds:[{zoneWidth:36,speed:1400},{zoneWidth:26,speed:1150},{zoneWidth:18,speed:950},{zoneWidth:12,speed:800}] })
   },
-  oxidation_timing:{
-    icon:'🌡️', name:'산화막 두께 맞추기', color:'#60a5fa',
-    intro:'목표 두께 구간에서 정확히 [가스 차단!]을 눌러야 균일한 절연막이 만들어져요. 라운드가 지날수록 구간이 좁아지고 빨라져요!',
-    play: timingZoneGame({ label:'산화막 두께 맞추기', actionLabel:'🧪 가스 차단!',
-      rounds:[{zoneWidth:34,speed:1300},{zoneWidth:24,speed:1050},{zoneWidth:16,speed:900},{zoneWidth:10,speed:750}] })
+  oxidation_hold:{
+    icon:'🌡️', name:'산화막 압력 유지', color:'#60a5fa',
+    intro:'버튼을 누르고 있으면 압력이 오르고, 손을 떼면 내려가요. 목표 구간 안에 압력을 붙잡아 두어 유지 시간을 채우세요. 라운드가 지날수록 구간이 좁아지고 시간이 빠듯해져요!',
+    play: holdBalanceGame({ label:'산화막 압력 유지', actionLabel:'🧪 눌러서 가스 주입',
+      rounds:[
+        {band:[38,62], holdGoal:2.5, roundTime:9, rise:55, fall:35},
+        {band:[42,60], holdGoal:3,   roundTime:9, rise:60, fall:40},
+        {band:[45,58], holdGoal:3.2, roundTime:8, rise:65, fall:45},
+        {band:[46,56], holdGoal:3.5, roundTime:8, rise:70, fall:50}
+      ] })
   },
   photo_drag:{
     icon:'🎯', name:'마스크 스피드 정렬', color:'#38bdf8',
@@ -2485,15 +2693,15 @@ const EXTRA_GAMES = {
     intro:'반짝이는 슬롯이 무작위 위치에 나타났다 사라져요. 사라지기 전에 재빨리 탭해서 콤보를 이어가며 균일한 도핑을 완성하세요!',
     play: quickTapComboGame({ label:'이온 콤보 저격', totalTargets:15, startLife:1100, minLife:420, shrinkPerSpawn:45 })
   },
-  metal_drag:{
-    icon:'✏️', name:'배선 노드 스피드 연결', color:'#3b82f6',
-    intro:'전극 노드가 나타나는 위치로 배선 커넥터를 재빨리 드래그하세요. 라운드가 지날수록 허용 오차가 줄어들어요!',
-    play: dragTargetGame({ label:'배선 노드 스피드 연결', rounds:[{tolerance:15},{tolerance:11},{tolerance:8},{tolerance:6}] })
+  etch_trace:{
+    icon:'🧭', name:'식각 라인 트레이싱', color:'#2f6fed',
+    intro:'회로선(빨간 구역)을 건드리지 않도록 파란 점을 손가락으로 밀어 맨 아래 목표까지 옮기세요. 라운드가 지날수록 장애물이 늘어나요!',
+    play: traceAvoidGame({ label:'식각 라인 트레이싱', rounds:[{obstacles:2,tolerance:11},{obstacles:3,tolerance:11},{obstacles:4,tolerance:10},{obstacles:5,tolerance:10}] })
   },
-  eds_combo:{
-    icon:'🔬', name:'불량 칩 스피드 검사', color:'#0ea5e9',
-    intro:'컨베이어를 스쳐가는 불량 칩이 무작위 위치에 나타났다 사라져요. 놓치지 않고 빠르게 탭해서 쳐내 수율을 지키세요!',
-    play: quickTapComboGame({ label:'불량 칩 스피드 검사', totalTargets:16, startLife:1000, minLife:380, shrinkPerSpawn:40 })
+  eds_conveyor:{
+    icon:'🔬', name:'불량 칩 컨베이어 검사', color:'#0ea5e9',
+    intro:'컨베이어 벨트를 타고 오른쪽에서 왼쪽으로 칩이 흘러가요. 불량(⚠️) 칩만 재빨리 탭해서 쳐내고, 정상(✔️) 칩은 그냥 흘려보내세요!',
+    play: conveyorGame({ label:'불량 칩 컨베이어 검사', totalItems:22, badRatio:0.45, speedMs:2600, spawnInterval:520 })
   }
 };
 
