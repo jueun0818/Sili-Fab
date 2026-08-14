@@ -124,7 +124,9 @@ module.exports = async function handler(req, res) {
         return;
       }
       const score = Number(body.score);
-      if (!name || !Number.isFinite(score) || score < 0 || score > 100) {
+      // Minigame scores are open-ended (no 100-point ceiling), so only sanity-check
+      // the range to keep out garbage/overflow submissions, not to cap real play.
+      if (!name || !Number.isFinite(score) || score < 0 || score > 999999) {
         res.status(400).json({ error: 'invalid_submission' });
         return;
       }

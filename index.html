@@ -2240,7 +2240,9 @@ document.getElementById('btn-mem-back').addEventListener('click', ()=>{
    ============================================================ */
 const DEFECT_BEST_KEY = 'sili_fab_defect_best';
 const DEFECT_TIME_LIMIT = 40;
-const DEFECT_GRID = { cells:12, cols:4, defects:3 };
+const DEFECT_RAMP_TIME = 40;
+const DEFECT_GRID_START = { cells:9, cols:3, defects:2 };
+const DEFECT_GRID_END = { cells:20, cols:5, defects:6 };
 const DEFECT_POINTS_PER_HIT = 9;
 const defectArea = document.getElementById('defect-stage-area');
 const defectTimerEl = document.getElementById('defect-timer');
@@ -2329,13 +2331,18 @@ function startDefectGame(){
 
   function playGrid(){
     if(defectCleanedUp) return;
-    const cfg = DEFECT_GRID;
+    const t = rampT(DEFECT_TIME_LIMIT-remaining, DEFECT_RAMP_TIME);
+    const cfg = {
+      cells: Math.round(lerp(DEFECT_GRID_START.cells, DEFECT_GRID_END.cells, t)),
+      cols: Math.round(lerp(DEFECT_GRID_START.cols, DEFECT_GRID_END.cols, t)),
+      defects: Math.round(lerp(DEFECT_GRID_START.defects, DEFECT_GRID_END.defects, t))
+    };
     const defectSet = new Set();
     while(defectSet.size < cfg.defects) defectSet.add(Math.floor(Math.random()*cfg.cells));
     let found = 0, ended = false;
 
     defectArea.innerHTML = `
-      <div class="exp-status">결함 탐지 · 점수 <span id="defect-score">${Math.min(100, hits*DEFECT_POINTS_PER_HIT)}</span></div>
+      <div class="exp-status">결함 탐지 · 점수 <span id="defect-score">${hits*DEFECT_POINTS_PER_HIT}</span></div>
       <div class="spot-grid" id="dspot-grid" style="grid-template-columns:repeat(${cfg.cols},1fr);"></div>
     `;
     const grid = defectArea.querySelector('#dspot-grid');
@@ -2360,7 +2367,7 @@ function startDefectGame(){
         if(audioCtx) playTone(700, audioCtx.currentTime, 0.06, 'square', 0.08);
         found++;
         hits++;
-        scoreEl.textContent = Math.min(100, hits*DEFECT_POINTS_PER_HIT);
+        scoreEl.textContent = hits*DEFECT_POINTS_PER_HIT;
         if(found>=cfg.defects){
           ended = true;
           setTimeout(()=>{ if(!defectCleanedUp) playGrid(); }, 350);
@@ -2376,7 +2383,7 @@ function startDefectGame(){
     if(defectCleanedUp) return;
     defectCleanedUp = true;
     clearInterval(tickId);
-    renderDefectResult(Math.min(100, hits*DEFECT_POINTS_PER_HIT));
+    renderDefectResult(hits*DEFECT_POINTS_PER_HIT);
   }
 
   playGrid();
@@ -2435,14 +2442,19 @@ document.getElementById('btn-defect-back').addEventListener('click', ()=>{
    ============================================================ */
 
 /* Engine A: timing zone — stop a moving marker inside a shrinking target zone */
+/* shared: clamped 0..1 progress through a difficulty ramp, plus a lerp helper */
+function rampT(elapsed, rampTime){ return Math.max(0, Math.min(1, elapsed/rampTime)); }
+function lerp(a, b, t){ return a + (b-a)*t; }
+
 function timingZoneGame(cfg){
   return function(container, onFinish, ctx){
     let hits=0, cleanedUp=false, raf=null, tickId=null, lastTap=0;
     let remaining = cfg.timeLimit;
+    let pos = 0, dir = 1, lastTs = null;
     container.innerHTML = `
       <div class="exp-status">${cfg.label} · 점수 <span id="tz-score">0</span></div>
       <div class="tz-track" id="tz-track">
-        <div class="tz-zone" style="left:${50-cfg.zoneWidth/2}%;width:${cfg.zoneWidth}%;"></div>
+        <div class="tz-zone" id="tz-zone" style="left:${50-cfg.zoneWidth/2}%;width:${cfg.zoneWidth}%;"></div>
         <div class="tz-marker" id="tz-marker"></div>
       </div>
       <div style="text-align:center;margin-top:20px;">
@@ -2450,22 +2462,31 @@ function timingZoneGame(cfg){
       </div>
     `;
     const marker = container.querySelector('#tz-marker');
+    const zoneEl = container.querySelector('#tz-zone');
     const track = container.querySelector('#tz-track');
     const scoreEl = container.querySelector('#tz-score');
     const btn = container.querySelector('#tz-stop');
+    let curZoneWidth = cfg.zoneWidth;
     ctx.setTimer(remaining, cfg.timeLimit);
     tickId = setInterval(()=>{
       if(cleanedUp) return;
       remaining -= 0.1;
       ctx.setTimer(Math.max(0, remaining), cfg.timeLimit);
+      const t = rampT(cfg.timeLimit-remaining, cfg.rampTime);
+      curZoneWidth = lerp(cfg.zoneWidth, cfg.zoneWidthEnd, t);
+      zoneEl.style.left = (50-curZoneWidth/2)+'%';
+      zoneEl.style.width = curZoneWidth+'%';
       if(remaining<=0) finish();
     }, 100);
-    let startTime = null;
     function tick(ts){
       if(cleanedUp) return;
-      if(!startTime) startTime = ts;
-      const phase = ((ts-startTime) % cfg.speed) / cfg.speed;
-      marker.style.left = (phase<0.5 ? phase*2*100 : (1-phase)*2*100) + '%';
+      if(!lastTs) lastTs = ts;
+      const dt = ts-lastTs; lastTs = ts;
+      const t = rampT(cfg.timeLimit-remaining, cfg.rampTime);
+      const speedMs = lerp(cfg.speed, cfg.speedEnd, t);
+      pos += (dt/speedMs)*100*dir;
+      if(pos>=100){ pos=100; dir=-1; } else if(pos<=0){ pos=0; dir=1; }
+      marker.style.left = pos+'%';
       raf = requestAnimationFrame(tick);
     }
     raf = requestAnimationFrame(tick);
@@ -2474,9 +2495,8 @@ function timingZoneGame(cfg){
       const now = performance.now();
       if(now-lastTap < (cfg.tapCooldown||280)) return;
       lastTap = now;
-      const pos = parseFloat(marker.style.left) || 0;
-      const inZone = Math.abs(pos-50) <= cfg.zoneWidth/2;
-      if(inZone){ hits++; scoreEl.textContent = hits; track.style.borderColor='var(--good)'; }
+      const inZone = Math.abs(pos-50) <= curZoneWidth/2;
+      if(inZone){ hits++; scoreEl.textContent = hits*cfg.pointsPerHit; track.style.borderColor='var(--good)'; }
       else track.style.borderColor='var(--bad)';
       setTimeout(()=>{ if(!cleanedUp) track.style.borderColor='var(--line)'; }, 150);
     });
@@ -2485,16 +2505,17 @@ function timingZoneGame(cfg){
       cleanedUp = true;
       clearInterval(tickId);
       if(raf) cancelAnimationFrame(raf);
-      onFinish(Math.min(100, hits*cfg.pointsPerHit));
+      onFinish(hits*cfg.pointsPerHit);
     }
     return function cleanup(){ cleanedUp=true; clearInterval(tickId); if(raf) cancelAnimationFrame(raf); };
   };
 }
 
-/* Engine B: quick tap combo — tap flashing targets before they vanish, chain a combo, race the clock */
+/* Engine B: quick tap combo — tap flashing targets before they vanish, chain a combo, race the clock;
+   target lifetime keeps shrinking the whole session so it never stops getting harder */
 function quickTapComboGame(cfg){
   return function(container, onFinish, ctx){
-    let hits=0, combo=0, cleanedUp=false, timeUp=false, spawnTimer=null;
+    let hits=0, combo=0, cleanedUp=false, timeUp=false, spawnTimer=null, alive=0;
     let remaining = cfg.timeLimit;
     container.innerHTML = `
       <div class="exp-status">${cfg.label} · 점수 <span id="qtc-score">0</span> · <span id="qtc-combo">콤보 0</span></div>
@@ -2508,34 +2529,46 @@ function quickTapComboGame(cfg){
       if(cleanedUp) return;
       remaining -= 0.1;
       ctx.setTimer(Math.max(0, remaining), cfg.timeLimit);
-      if(remaining<=0 && !timeUp){ timeUp = true; clearTimeout(spawnTimer); if(area.children.length===0) finish(); }
+      if(remaining<=0 && !timeUp){ timeUp = true; clearTimeout(spawnTimer); maybeFinish(); }
     }, 100);
-    let spawnCount = 0;
+    function currentLife(){
+      const t = rampT(cfg.timeLimit-remaining, cfg.rampTime);
+      return lerp(cfg.startLife, cfg.endLife, t);
+    }
+    function currentGap(){
+      const t = rampT(cfg.timeLimit-remaining, cfg.rampTime);
+      return lerp(cfg.spawnGap, cfg.spawnGapEnd, t);
+    }
+    function maybeFinish(){
+      if(timeUp && alive<=0) finish();
+    }
     function spawnTarget(){
       if(cleanedUp || timeUp) return;
-      spawnCount++;
+      alive++;
       const t = document.createElement('div');
       t.className = 'qtc-target';
       t.style.left = (12+Math.random()*76)+'%';
       t.style.top = (12+Math.random()*76)+'%';
       area.appendChild(t);
-      const life = Math.max(cfg.minLife, cfg.startLife - spawnCount*cfg.shrinkPerSpawn);
+      const life = currentLife();
       let tapped = false;
       const timer = setTimeout(()=>{
         if(tapped || cleanedUp) return;
+        alive--;
         t.remove(); combo = 0; comboEl.textContent = '콤보 0';
-        if(timeUp){ if(area.children.length===0) finish(); } else spawnTimer = setTimeout(spawnTarget, cfg.spawnGap||120);
+        if(timeUp) maybeFinish(); else spawnTimer = setTimeout(spawnTarget, currentGap());
       }, life);
       t.addEventListener('click', ()=>{
         if(tapped || cleanedUp) return;
         tapped = true;
+        alive--;
         clearTimeout(timer);
         hits++; combo++;
-        scoreEl.textContent = Math.min(100, hits*cfg.pointsPerHit);
+        scoreEl.textContent = hits*cfg.pointsPerHit;
         comboEl.textContent = '콤보 '+combo;
         t.classList.add('qtc-hit');
         setTimeout(()=>{ if(!cleanedUp) t.remove(); }, 180);
-        if(timeUp){ if(area.children.length<=1) finish(); } else spawnTimer = setTimeout(spawnTarget, cfg.spawnGap||120);
+        if(timeUp) maybeFinish(); else spawnTimer = setTimeout(spawnTarget, currentGap());
       });
     }
     spawnTarget();
@@ -2544,21 +2577,27 @@ function quickTapComboGame(cfg){
       cleanedUp = true;
       clearInterval(tickId);
       clearTimeout(spawnTimer);
-      onFinish(Math.min(100, hits*cfg.pointsPerHit));
+      onFinish(hits*cfg.pointsPerHit);
     }
     return function cleanup(){ cleanedUp = true; clearInterval(tickId); clearTimeout(spawnTimer); };
   };
 }
 
-/* Engine C: drag to target — drag a piece onto a target, it respawns elsewhere on release, race the clock */
+/* Engine C: drag to target — drag a piece onto a target, it respawns elsewhere on release, race the clock;
+   allowed tolerance keeps shrinking the whole session */
 function dragTargetGame(cfg){
   return function(container, onFinish, ctx){
     let hits=0, cleanedUp=false;
     let remaining = cfg.timeLimit;
+    function currentTolerance(){
+      const t = rampT(cfg.timeLimit-remaining, cfg.rampTime);
+      return lerp(cfg.tolerance, cfg.toleranceEnd, t);
+    }
     function spawnRound(){
       const tx = 20+Math.random()*60, ty = 22+Math.random()*56;
+      const tol = currentTolerance();
       container.innerHTML = `
-        <div class="exp-status">${cfg.label} · 점수 <span id="dtg-score">${Math.min(100,hits*cfg.pointsPerHit)}</span></div>
+        <div class="exp-status">${cfg.label} · 점수 <span id="dtg-score">${hits*cfg.pointsPerHit}</span></div>
         <div class="dtg-area" id="dtg-area">
           <div class="dtg-target" style="left:${tx}%;top:${ty}%;"></div>
           <div class="dtg-piece" id="dtg-piece" style="left:50%;top:88%;"></div>
@@ -2576,7 +2615,7 @@ function dragTargetGame(cfg){
         done = true; dragging = false;
         const p = toPct(clientX, clientY);
         const dist = Math.hypot(p.x-tx, p.y-ty);
-        const inZone = dist <= cfg.tolerance;
+        const inZone = dist <= tol;
         if(inZone) hits++;
         piece.style.left = Math.max(0,Math.min(100,p.x))+'%';
         piece.style.top = Math.max(0,Math.min(100,p.y))+'%';
@@ -2604,23 +2643,23 @@ function dragTargetGame(cfg){
       if(cleanedUp) return;
       cleanedUp = true;
       clearInterval(tickId);
-      onFinish(Math.min(100, hits*cfg.pointsPerHit));
+      onFinish(hits*cfg.pointsPerHit);
     }
     return function cleanup(){ cleanedUp=true; clearInterval(tickId); };
   };
 }
 
 /* Engine D: hold & balance — hold a button to raise a gauge, release to let it fall,
-   rack up cumulative time spent inside the target band before the clock runs out */
+   rack up points for every tick spent inside the target band; the band keeps narrowing */
 function holdBalanceGame(cfg){
   return function(container, onFinish, ctx){
-    let level = 15, held = 0, pressing = false, cleanedUp = false;
+    let level = 15, heldScore = 0, heldSeconds = 0, pressing = false, cleanedUp = false;
     let remaining = cfg.timeLimit;
     container.innerHTML = `
-      <div class="exp-status">${cfg.label}</div>
+      <div class="exp-status">${cfg.label} · 점수 <span id="hb-score">0</span></div>
       <div class="hb-wrap">
         <div class="hb-track" id="hb-track">
-          <div class="hb-zone" style="bottom:${cfg.band[0]}%;height:${cfg.band[1]-cfg.band[0]}%;"></div>
+          <div class="hb-zone" id="hb-zone" style="bottom:${cfg.band[0]}%;height:${cfg.band[1]-cfg.band[0]}%;"></div>
           <div class="hb-fill" id="hb-fill"></div>
         </div>
         <div class="hb-progress" id="hb-progress">유지 시간: 0.0s</div>
@@ -2629,20 +2668,28 @@ function holdBalanceGame(cfg){
     `;
     const fill = container.querySelector('#hb-fill');
     const track = container.querySelector('#hb-track');
+    const zoneEl = container.querySelector('#hb-zone');
     const progressEl = container.querySelector('#hb-progress');
+    const scoreEl = container.querySelector('#hb-score');
     const pressBtn = container.querySelector('#hb-press');
     const tickMs = 60;
     ctx.setTimer(remaining, cfg.timeLimit);
     const tickId = setInterval(()=>{
       if(cleanedUp) return;
       remaining -= tickMs/1000;
+      const t = rampT(cfg.timeLimit-remaining, cfg.rampTime);
+      const bandLo = lerp(cfg.band[0], cfg.bandEnd[0], t);
+      const bandHi = lerp(cfg.band[1], cfg.bandEnd[1], t);
+      zoneEl.style.bottom = bandLo+'%';
+      zoneEl.style.height = (bandHi-bandLo)+'%';
       level += (pressing ? cfg.rise : -cfg.fall) * (tickMs/1000);
       level = Math.max(0, Math.min(100, level));
       fill.style.height = level+'%';
-      const inBand = level>=cfg.band[0] && level<=cfg.band[1];
+      const inBand = level>=bandLo && level<=bandHi;
       track.style.borderColor = inBand ? 'var(--good)' : 'var(--line)';
-      if(inBand) held += tickMs/1000;
-      progressEl.textContent = `유지 시간: ${held.toFixed(1)}s`;
+      if(inBand){ heldSeconds += tickMs/1000; heldScore += (tickMs/1000)*cfg.pointsPerSecond; }
+      progressEl.textContent = `유지 시간: ${heldSeconds.toFixed(1)}s`;
+      scoreEl.textContent = Math.round(heldScore);
       ctx.setTimer(Math.max(0, remaining), cfg.timeLimit);
       if(remaining<=0) finish();
     }, tickMs);
@@ -2653,25 +2700,28 @@ function holdBalanceGame(cfg){
       if(cleanedUp) return;
       cleanedUp = true;
       clearInterval(tickId);
-      onFinish(Math.round(held/cfg.timeLimit*100));
+      onFinish(Math.round(heldScore));
     }
     return function cleanup(){ cleanedUp=true; clearInterval(tickId); };
   };
 }
 
 /* Engine E: trace & avoid — drag a dot from top to bottom around static obstacles,
-   each clean run scores a point and immediately respawns a fresh layout */
+   each clean run scores a point and immediately respawns a fresh layout with more obstacles */
 function traceAvoidGame(cfg){
   return function(container, onFinish, ctx){
     let hits=0, cleanedUp=false;
     let remaining = cfg.timeLimit;
     function spawnRound(){
+      const t = rampT(cfg.timeLimit-remaining, cfg.rampTime);
+      const obstacleCount = Math.round(lerp(cfg.obstacles, cfg.obstaclesEnd, t));
+      const tol = lerp(cfg.tolerance, cfg.toleranceEnd, t);
       const obstacles = [];
-      for(let i=0;i<cfg.obstacles;i++){
-        obstacles.push({ x: 20+Math.random()*60, y: 15+(i+1)*(70/(cfg.obstacles+1)) });
+      for(let i=0;i<obstacleCount;i++){
+        obstacles.push({ x: 20+Math.random()*60, y: 15+(i+1)*(70/(obstacleCount+1)) });
       }
       container.innerHTML = `
-        <div class="exp-status">${cfg.label} · 점수 <span id="tr-score">${Math.min(100,hits*cfg.pointsPerHit)}</span></div>
+        <div class="exp-status">${cfg.label} · 점수 <span id="tr-score">${hits*cfg.pointsPerHit}</span></div>
         <div class="tr-area" id="tr-area">
           <div class="tr-start" style="top:6%;"></div>
           <div class="tr-end" style="top:92%;"></div>
@@ -2683,7 +2733,7 @@ function traceAvoidGame(cfg){
       const dot = container.querySelector('#tr-dot');
       let dragging=false, failed=false, done=false;
       function toPct(cx,cy){ const rc=area.getBoundingClientRect(); return {x:(cx-rc.left)/rc.width*100, y:(cy-rc.top)/rc.height*100}; }
-      function checkHit(px,py){ return obstacles.some(o=> Math.hypot(px-o.x, py-o.y) < cfg.tolerance); }
+      function checkHit(px,py){ return obstacles.some(o=> Math.hypot(px-o.x, py-o.y) < tol); }
       function finish(){
         if(done || cleanedUp) return; done=true; dragging=false;
         if(!failed) hits++;
@@ -2713,16 +2763,17 @@ function traceAvoidGame(cfg){
       if(cleanedUp) return;
       cleanedUp = true;
       clearInterval(tickId);
-      onFinish(Math.min(100, hits*cfg.pointsPerHit));
+      onFinish(hits*cfg.pointsPerHit);
     }
     return function cleanup(){ cleanedUp=true; clearInterval(tickId); };
   };
 }
 
-/* Engine F: conveyor — items scroll across a belt for the whole time limit; tap only the defective ones */
+/* Engine F: conveyor — items scroll across a belt for the whole time limit; tap only the defective ones.
+   crossing speed and spawn rate both ramp up the whole session */
 function conveyorGame(cfg){
   return function(container, onFinish, ctx){
-    let correct=0, wrong=0, totalBad=0, cleanedUp=false, timeUp=false, spawnTimer=null;
+    let score=0, cleanedUp=false, timeUp=false, spawnTimer=null, alive=0;
     let remaining = cfg.timeLimit;
     container.innerHTML = `
       <div class="exp-status">${cfg.label} · 점수 <span id="cv-score">0</span></div>
@@ -2735,12 +2786,18 @@ function conveyorGame(cfg){
       if(cleanedUp) return;
       remaining -= 0.1;
       ctx.setTimer(Math.max(0, remaining), cfg.timeLimit);
-      if(remaining<=0 && !timeUp){ timeUp = true; clearTimeout(spawnTimer); if(belt.children.length===0) finish(); }
+      if(remaining<=0 && !timeUp){ timeUp = true; clearTimeout(spawnTimer); maybeFinish(); }
     }, 100);
+    function maybeFinish(){
+      if(timeUp && alive<=0) finish();
+    }
     function spawnItem(){
       if(cleanedUp || timeUp) return;
+      alive++;
+      const t = rampT(cfg.timeLimit-remaining, cfg.rampTime);
+      const speedMs = lerp(cfg.speedMs, cfg.speedMsEnd, t);
+      const spawnInterval = lerp(cfg.spawnInterval, cfg.spawnIntervalEnd, t);
       const isBad = Math.random() < cfg.badRatio;
-      if(isBad) totalBad++;
       const el = document.createElement('div');
       el.className = 'cv-item ' + (isBad ? 'cv-bad' : 'cv-good');
       el.textContent = isBad ? '⚠️' : '✔️';
@@ -2748,24 +2805,27 @@ function conveyorGame(cfg){
       el.style.left = '100%';
       belt.appendChild(el);
       requestAnimationFrame(()=>{
-        el.style.transition = `left ${cfg.speedMs}ms linear`;
+        el.style.transition = `left ${speedMs}ms linear`;
         el.style.left = '-12%';
       });
-      let tapped = false;
+      let tapped = false, settled = false;
       function settle(){
+        if(settled) return;
+        settled = true;
+        alive--;
         if(!cleanedUp) el.remove();
-        if(timeUp && belt.children.length===0) finish();
+        if(timeUp) maybeFinish();
       }
       el.addEventListener('click', ()=>{
         if(tapped || cleanedUp) return;
         tapped = true;
-        if(isBad){ correct++; el.classList.add('cv-hit-good'); }
-        else { wrong++; el.classList.add('cv-hit-bad'); }
-        scoreEl.textContent = Math.max(0, Math.min(100, Math.round((correct/Math.max(1,totalBad))*100 - wrong*8)));
+        if(isBad){ score += cfg.pointsPerHit; el.classList.add('cv-hit-good'); }
+        else { score = Math.max(0, score-cfg.penaltyPerMiss); el.classList.add('cv-hit-bad'); }
+        scoreEl.textContent = score;
         setTimeout(settle, 220);
       });
-      setTimeout(()=>{ if(!tapped && !cleanedUp) settle(); }, cfg.speedMs);
-      if(!timeUp) spawnTimer = setTimeout(spawnItem, cfg.spawnInterval);
+      setTimeout(()=>{ if(!tapped && !cleanedUp) settle(); }, speedMs);
+      if(!timeUp) spawnTimer = setTimeout(spawnItem, spawnInterval);
     }
     spawnItem();
     function finish(){
@@ -2773,8 +2833,7 @@ function conveyorGame(cfg){
       cleanedUp = true;
       clearInterval(tickId);
       clearTimeout(spawnTimer);
-      const score = totalBad>0 ? Math.round((correct/totalBad)*100 - wrong*8) : 100;
-      onFinish(Math.max(0, Math.min(100, score)));
+      onFinish(score);
     }
     return function cleanup(){ cleanedUp = true; timeUp = true; clearInterval(tickId); clearTimeout(spawnTimer); belt.innerHTML=''; };
   };
@@ -2783,35 +2842,38 @@ function conveyorGame(cfg){
 const EXTRA_GAMES = {
   wafer_timing:{
     icon:'🔪', name:'잉곳 정속 슬라이스', color:'#93c5fd',
-    intro:'25초 동안 다이아몬드 톱이 초록 구간을 지날 때마다 [싹둑!]을 눌러 최대한 많이 맞혀 점수를 쌓으세요!',
-    play: timingZoneGame({ label:'잉곳 정속 슬라이스', actionLabel:'✂️ 싹둑!', timeLimit:25,
-      zoneWidth:22, speed:1000, pointsPerHit:14, tapCooldown:260 })
+    intro:'25초 동안 다이아몬드 톱이 초록 구간을 지날 때마다 [싹둑!]을 눌러 맞혀 점수를 쌓으세요. 시간이 지날수록 구간이 좁아지고 톱이 더 빨라져요 — 최고점 제한은 없어요!',
+    play: timingZoneGame({ label:'잉곳 정속 슬라이스', actionLabel:'✂️ 싹둑!', timeLimit:25, rampTime:25,
+      zoneWidth:26, zoneWidthEnd:10, speed:1050, speedEnd:480, pointsPerHit:14, tapCooldown:220 })
   },
   oxidation_hold:{
     icon:'🌡️', name:'산화막 압력 유지', color:'#60a5fa',
-    intro:'버튼을 누르고 있으면 압력이 오르고, 손을 떼면 내려가요. 25초 동안 압력을 목표 구간 안에 최대한 오래 붙잡아 두세요. 누적 유지 시간이 곧 점수예요!',
-    play: holdBalanceGame({ label:'산화막 압력 유지', actionLabel:'🧪 눌러서 가스 주입', timeLimit:25,
-      band:[42,60], rise:55, fall:38 })
+    intro:'버튼을 누르고 있으면 압력이 오르고, 손을 떼면 내려가요. 목표 구간 안에 있는 매 순간 점수가 쌓여요. 시간이 지날수록 구간이 좁아져요 — 최고점 제한은 없어요!',
+    play: holdBalanceGame({ label:'산화막 압력 유지', actionLabel:'🧪 눌러서 가스 주입', timeLimit:25, rampTime:25,
+      band:[40,62], bandEnd:[48,58], rise:55, fall:38, pointsPerSecond:12 })
   },
   photo_drag:{
     icon:'🎯', name:'마스크 스피드 정렬', color:'#38bdf8',
-    intro:'25초 동안 파란 마스크 조각을 점선 목표 위치로 최대한 많이 드래그해서 정렬하세요. 맞힐 때마다 새 목표가 나타나요!',
-    play: dragTargetGame({ label:'마스크 스피드 정렬', timeLimit:25, tolerance:12, pointsPerHit:11 })
+    intro:'25초 동안 파란 마스크 조각을 점선 목표 위치로 최대한 많이 드래그해서 정렬하세요. 시간이 지날수록 허용 오차가 줄어들어요 — 최고점 제한은 없어요!',
+    play: dragTargetGame({ label:'마스크 스피드 정렬', timeLimit:25, rampTime:25, tolerance:14, toleranceEnd:6, pointsPerHit:11 })
   },
   iondep_combo:{
     icon:'⚡', name:'이온 콤보 저격', color:'#7dd3fc',
-    intro:'25초 동안 반짝이는 슬롯을 사라지기 전에 최대한 많이 탭해서 콤보를 이어가며 점수를 쌓으세요!',
-    play: quickTapComboGame({ label:'이온 콤보 저격', timeLimit:25, startLife:1000, minLife:380, shrinkPerSpawn:32, pointsPerHit:9, spawnGap:100 })
+    intro:'25초 동안 반짝이는 슬롯을 사라지기 전에 최대한 많이 탭해서 콤보를 이어가세요. 시간이 지날수록 슬롯이 더 빨리 사라지고 더 빨리 나타나요 — 최고점 제한은 없어요!',
+    play: quickTapComboGame({ label:'이온 콤보 저격', timeLimit:25, rampTime:25,
+      startLife:1000, endLife:420, spawnGap:130, spawnGapEnd:55, pointsPerHit:9 })
   },
   etch_trace:{
     icon:'🧭', name:'식각 라인 트레이싱', color:'#2f6fed',
-    intro:'25초 동안 회로선(빨간 구역)을 건드리지 않도록 파란 점을 밀어 맨 아래까지 옮기세요. 한 번 성공할 때마다 새 경로가 나타나요!',
-    play: traceAvoidGame({ label:'식각 라인 트레이싱', timeLimit:25, obstacles:3, tolerance:11, pointsPerHit:14 })
+    intro:'25초 동안 회로선(빨간 구역)을 건드리지 않도록 파란 점을 밀어 맨 아래까지 옮기세요. 시간이 지날수록 장애물이 늘고 허용 오차가 줄어요 — 최고점 제한은 없어요!',
+    play: traceAvoidGame({ label:'식각 라인 트레이싱', timeLimit:25, rampTime:25,
+      obstacles:2, obstaclesEnd:6, tolerance:13, toleranceEnd:9, pointsPerHit:14 })
   },
   eds_conveyor:{
     icon:'🔬', name:'불량 칩 컨베이어 검사', color:'#0ea5e9',
-    intro:'25초 동안 컨베이어 벨트를 타고 흘러가는 칩 중 불량(⚠️)만 재빨리 탭해서 쳐내고, 정상(✔️)은 그냥 흘려보내세요!',
-    play: conveyorGame({ label:'불량 칩 컨베이어 검사', timeLimit:25, badRatio:0.45, speedMs:2400, spawnInterval:480 })
+    intro:'25초 동안 컨베이어 벨트를 타고 흘러가는 칩 중 불량(⚠️)만 재빨리 탭해서 쳐내세요. 시간이 지날수록 벨트가 더 빨라지고 칩이 더 자주 나와요 — 최고점 제한은 없어요!',
+    play: conveyorGame({ label:'불량 칩 컨베이어 검사', timeLimit:25, rampTime:25, badRatio:0.5,
+      speedMs:2400, speedMsEnd:1300, spawnInterval:520, spawnIntervalEnd:280, pointsPerHit:10, penaltyPerMiss:12 })
   }
 };
 
@@ -2917,7 +2979,7 @@ function startExtraGame(key){
   extraArea.innerHTML = '';
   resetExtraTimer();
   if(extraCleanup){ try{ extraCleanup(); }catch(e){} extraCleanup = null; }
-  extraCleanup = EXTRA_GAMES[key].play(extraArea, (score)=> renderExtraResult(key, Math.max(0,Math.min(100,Math.round(score)))), { setTimer: setExtraTimer });
+  extraCleanup = EXTRA_GAMES[key].play(extraArea, (score)=> renderExtraResult(key, Math.max(0, Math.round(score))), { setTimer: setExtraTimer });
 }
 
 function renderExtraResult(key, score){
