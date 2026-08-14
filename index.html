@@ -922,7 +922,7 @@ body.pwa-banner-open #btn-game-sound{
   <section id="screen-ranking" class="screen">
     <div class="map-header">
       <button class="btn ghost" id="btn-rank-back" style="padding:8px 12px;font-size:15px;">◀ 뒤로</button>
-      <h1 class="pixel">전체 랭킹</h1>
+      <h1 class="pixel" id="rank-title">전체 랭킹</h1>
       <button class="btn ghost" id="btn-rank-refresh" style="padding:8px 12px;font-size:14px;">↻</button>
     </div>
     <div class="rank-status" id="rank-status">불러오는 중...</div>
@@ -954,6 +954,9 @@ body.pwa-banner-open #btn-game-sound{
       <div class="title pixel" id="extra-title" style="font-size:14px;"></div>
       <button class="btn ghost snd-toggle" id="btn-extra-sound" style="padding:6px 10px;font-size:14px;margin-left:auto;">🔊</button>
       <div class="timer" id="extra-timer"><span id="extra-timer-text">--</span></div>
+    </div>
+    <div class="timer-bar-track" id="extra-timer-bar-track">
+      <div class="timer-bar-fill" id="extra-timer-bar-fill"></div>
     </div>
     <div class="game-stage-area" id="extra-stage-area"></div>
     <div class="game-footer-hint" id="extra-hint"></div>
@@ -1503,7 +1506,7 @@ document.addEventListener('pointerdown', function unlockTitleAmbience(){
 // worked around this locally with an explicit touchmove preventDefault; apply the same
 // fix globally to every drag surface so scrolling never hijacks a drag anywhere.
 document.addEventListener('touchmove', function(e){
-  if(e.target.closest('.slice-area, .ionz-area, .etch2-grid, .oneline-area, .belt-wrap, .uv-stage, #ph-btn, #pkg-seal-btn, [style*="touch-action:none"]')){
+  if(e.target.closest('.slice-area, .ionz-area, .etch2-grid, .oneline-area, .belt-wrap, .uv-stage, #ph-btn, #pkg-seal-btn, .spot-grid, .cv-belt, .tr-area, .dtg-area, .qtc-area, .hb-track, [style*="touch-action:none"]')){
     if(e.cancelable) e.preventDefault();
   }
 }, { passive:false });
@@ -1935,14 +1938,18 @@ document.getElementById('btn-rank-submit').addEventListener('click', async ()=>{
     btn.disabled = false; btn.textContent = '등록';
   }
 });
+let currentRankBoard = 'main';
+let rankReturnScreen = 'screen-title';
 async function loadRanking(){
   const statusEl = document.getElementById('rank-status');
   const listEl = document.getElementById('rank-list');
   listEl.innerHTML = '';
   statusEl.style.display = 'block';
   statusEl.textContent = '불러오는 중...';
+  const isMain = currentRankBoard==='main';
   try{
-    const res = await fetch('/api/leaderboard');
+    const qs = isMain ? '' : `?board=${encodeURIComponent(currentRankBoard)}`;
+    const res = await fetch('/api/leaderboard'+qs);
     if(res.status===503){ statusEl.textContent='랭킹 서버 준비 중이에요. 나중에 다시 확인해주세요.'; return; }
     if(!res.ok) throw new Error('bad status');
     const data = await res.json();
@@ -1956,8 +1963,8 @@ async function loadRanking(){
         <div class="rank-row ${tier}">
           <div class="rank-num">${medals[idx] || (idx+1)}</div>
           <div class="rank-name">${escapeHTML(e.name)}</div>
-          <div class="rank-grade">${escapeHTML(e.grade)}등급</div>
-          <div class="rank-yield">${e.yieldPct}%</div>
+          ${isMain ? `<div class="rank-grade">${escapeHTML(e.grade)}등급</div>` : ''}
+          <div class="rank-yield">${isMain ? e.yieldPct+'%' : e.score+'점'}</div>
         </div>
       `;
     }).join('');
@@ -1966,12 +1973,76 @@ async function loadRanking(){
     statusEl.textContent = '랭킹을 불러오지 못했어요. 네트워크를 확인해주세요.';
   }
 }
-document.getElementById('btn-open-ranking').addEventListener('click', ()=>{
+function openMainRanking(){
+  currentRankBoard = 'main';
+  rankReturnScreen = 'screen-title';
+  document.getElementById('rank-title').textContent = '전체 랭킹';
   showScreen('screen-ranking');
   loadRanking();
-});
-document.getElementById('btn-rank-back').addEventListener('click', ()=> showScreen('screen-title'));
+}
+function openMinigameRanking(board, title){
+  currentRankBoard = board;
+  rankReturnScreen = 'screen-minigames';
+  document.getElementById('rank-title').textContent = title+' 랭킹';
+  showScreen('screen-ranking');
+  loadRanking();
+}
+document.getElementById('btn-open-ranking').addEventListener('click', openMainRanking);
+document.getElementById('btn-rank-back').addEventListener('click', ()=> showScreen(rankReturnScreen));
 document.getElementById('btn-rank-refresh').addEventListener('click', loadRanking);
+
+/* shared rank-submit card, reused by every minigame result screen */
+function rankSubmitCardHTML(){
+  return `
+    <div class="card" id="mg-rank-card" style="margin-top:14px;text-align:left;">
+      <div class="section-label" style="margin-top:0;">🌐 이 게임 순위에 등록하기</div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="mg-rank-name-input" maxlength="12" placeholder="닉네임 (최대 12자)" class="rank-input">
+        <button class="btn" id="mg-rank-submit-btn" style="flex:none;padding:12px 18px;">등록</button>
+      </div>
+      <div id="mg-rank-submit-status" style="font-size:13px;color:var(--text-dim);margin-top:8px;min-height:16px;"></div>
+      <button class="btn ghost" id="mg-rank-view-btn" style="width:100%;margin-top:10px;">🏆 이 게임 순위 보기</button>
+    </div>
+  `;
+}
+function wireRankSubmit(root, board, score, title){
+  const input = root.querySelector('#mg-rank-name-input');
+  const btn = root.querySelector('#mg-rank-submit-btn');
+  const status = root.querySelector('#mg-rank-submit-status');
+  const viewBtn = root.querySelector('#mg-rank-view-btn');
+  try{ input.value = localStorage.getItem('sili_fab_nickname') || ''; }catch(e){}
+  btn.addEventListener('click', async ()=>{
+    const name = input.value.trim();
+    if(!name){ status.textContent='닉네임을 입력해주세요.'; status.style.color='var(--bad)'; return; }
+    try{ localStorage.setItem('sili_fab_nickname', name); }catch(e){}
+    btn.disabled = true; btn.textContent = '등록 중...';
+    status.style.color = 'var(--text-dim)'; status.textContent = '';
+    try{
+      const res = await fetch('/api/leaderboard', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name, score, board })
+      });
+      if(res.status===503){
+        status.textContent = '랭킹 서버가 아직 준비되지 않았어요.';
+        status.style.color = 'var(--warn)';
+        btn.disabled = false; btn.textContent = '등록';
+        return;
+      }
+      if(!res.ok) throw new Error('bad status');
+      const data = await res.json();
+      status.textContent = data.rank ? `등록 완료! 이 게임 ${data.rank}위예요 🎉` : '등록 완료!';
+      status.style.color = 'var(--good)';
+      btn.textContent = '등록 완료 ✓';
+      unlockAchievement('rank_debut');
+    }catch(e){
+      status.textContent = '등록에 실패했어요. 잠시 후 다시 시도해주세요.';
+      status.style.color = 'var(--bad)';
+      btn.disabled = false; btn.textContent = '등록';
+    }
+  });
+  viewBtn.addEventListener('click', ()=> openMinigameRanking(board, title));
+}
 
 /* ============================================================
    7.7 EXTRA MINIGAME: Chip Memory Match
@@ -2121,6 +2192,7 @@ function renderMemResult(score, moves){
       <div class="rules-title">📋 결과</div>
       <div class="rules-text">${moves}회 만에 8쌍을 모두 맞췄어요.<br>🏅 내 최고 점수: ${isNewBest ? score : best}점${isNewBest ? ' — 방금 갱신했어요!' : ''}</div>
     </div>
+    ${rankSubmitCardHTML()}
     <div class="spacer"></div>
     <div class="btn-row">
       <button class="btn ghost" id="mem-result-back">◀ 처음으로</button>
@@ -2129,6 +2201,7 @@ function renderMemResult(score, moves){
   `;
   memArea.appendChild(ov);
   if(isNewBest) playSuccessChime(0);
+  wireRankSubmit(ov, 'memory', score, '칩 짝맞추기');
   ov.querySelector('#mem-result-back').addEventListener('click', ()=>{
     stopAmbience();
     showScreen('screen-minigames');
@@ -2166,12 +2239,9 @@ document.getElementById('btn-mem-back').addEventListener('click', ()=>{
    difficulty; find the ⚠️ defect cells in the grid before time runs out.
    ============================================================ */
 const DEFECT_BEST_KEY = 'sili_fab_defect_best';
-const DEFECT_ROUNDS = [
-  { cells:9,  cols:3, defects:2, time:7 },
-  { cells:12, cols:4, defects:3, time:7 },
-  { cells:16, cols:4, defects:4, time:6 },
-  { cells:16, cols:4, defects:5, time:5.5 }
-];
+const DEFECT_TIME_LIMIT = 40;
+const DEFECT_GRID = { cells:12, cols:4, defects:3 };
+const DEFECT_POINTS_PER_HIT = 9;
 const defectArea = document.getElementById('defect-stage-area');
 const defectTimerEl = document.getElementById('defect-timer');
 const defectTimerText = document.getElementById('defect-timer-text');
@@ -2221,7 +2291,7 @@ function renderDefectIntro(){
     <h2 style="text-align:center;margin:10px 0 0;font-size:20px;">결함 탐지</h2>
     <div class="rules-card">
       <div class="rules-title">🔬 결함 칩을 찾아 탭하세요!</div>
-      <div class="rules-text">격자 속에 ⚠️로 표시된 결함 칩이 숨어있어요. 시간 안에 결함 칩만 모두 찾아 탭하세요. 정상 칩을 잘못 누르면 감점! 라운드가 지날수록 격자가 커지고 더 어려워져요. 총 4라운드.</div>
+      <div class="rules-text">40초 동안 격자 속 ⚠️ 결함 칩을 최대한 많이 찾아 탭하세요. 다 찾으면 새 격자가 바로 나타나요. 정상 칩을 잘못 누르면 감점!</div>
     </div>
     <div class="section-label" style="text-align:center;">🏅 내 최고 점수: ${best}점</div>
     <div class="spacer"></div>
@@ -2241,21 +2311,35 @@ function renderDefectIntro(){
   });
 }
 
+let defectCleanedUp = false;
 function startDefectGame(){
   defectArea.innerHTML = '';
-  let round = 0, totalScore = 0, tickId = null;
+  defectCleanedUp = false;
+  let hits = 0;
+  let remaining = DEFECT_TIME_LIMIT;
 
-  function playRound(){
-    const cfg = DEFECT_ROUNDS[round];
+  resetDefectTimer();
+  setDefectTimer(remaining, DEFECT_TIME_LIMIT);
+  const tickId = setInterval(()=>{
+    if(defectCleanedUp) return;
+    remaining -= 0.1;
+    setDefectTimer(Math.max(0, remaining), DEFECT_TIME_LIMIT);
+    if(remaining <= 0) finish();
+  }, 100);
+
+  function playGrid(){
+    if(defectCleanedUp) return;
+    const cfg = DEFECT_GRID;
     const defectSet = new Set();
     while(defectSet.size < cfg.defects) defectSet.add(Math.floor(Math.random()*cfg.cells));
-    let found = 0, misses = 0, ended = false;
+    let found = 0, ended = false;
 
     defectArea.innerHTML = `
-      <div class="exp-status">${round+1} / ${DEFECT_ROUNDS.length} 라운드</div>
+      <div class="exp-status">결함 탐지 · 점수 <span id="defect-score">${Math.min(100, hits*DEFECT_POINTS_PER_HIT)}</span></div>
       <div class="spot-grid" id="dspot-grid" style="grid-template-columns:repeat(${cfg.cols},1fr);"></div>
     `;
     const grid = defectArea.querySelector('#dspot-grid');
+    const scoreEl = defectArea.querySelector('#defect-score');
     for(let c=0;c<cfg.cells;c++){
       const cell = document.createElement('div');
       cell.className = 'spot-cell';
@@ -2264,17 +2348,8 @@ function startDefectGame(){
       grid.appendChild(cell);
     }
 
-    let remaining = cfg.time;
-    resetDefectTimer();
-    setDefectTimer(remaining, cfg.time);
-    tickId = setInterval(()=>{
-      remaining -= 0.1;
-      setDefectTimer(Math.max(0, remaining), cfg.time);
-      if(remaining <= 0){ clearInterval(tickId); finishRound(); }
-    }, 100);
-
     grid.addEventListener('click', (e)=>{
-      if(ended) return;
+      if(ended || defectCleanedUp) return;
       const cell = e.target.closest('.spot-cell');
       if(!cell || cell.style.pointerEvents==='none') return;
       const i = +cell.dataset.i;
@@ -2284,30 +2359,27 @@ function startDefectGame(){
         cell.classList.add('hit-good');
         if(audioCtx) playTone(700, audioCtx.currentTime, 0.06, 'square', 0.08);
         found++;
-        if(found>=cfg.defects){ clearInterval(tickId); finishRound(); }
+        hits++;
+        scoreEl.textContent = Math.min(100, hits*DEFECT_POINTS_PER_HIT);
+        if(found>=cfg.defects){
+          ended = true;
+          setTimeout(()=>{ if(!defectCleanedUp) playGrid(); }, 350);
+        }
       } else {
         cell.classList.add('hit-bad');
         playDangerBeep();
-        misses++;
       }
     });
-
-    function finishRound(){
-      if(ended) return;
-      ended = true;
-      const acc = Math.max(0, found/cfg.defects - misses*0.15);
-      totalScore += acc;
-      round++;
-      setTimeout(()=>{
-        if(round >= DEFECT_ROUNDS.length){
-          renderDefectResult(Math.round(totalScore/DEFECT_ROUNDS.length*100));
-        } else {
-          playRound();
-        }
-      }, 900);
-    }
   }
-  playRound();
+
+  function finish(){
+    if(defectCleanedUp) return;
+    defectCleanedUp = true;
+    clearInterval(tickId);
+    renderDefectResult(Math.min(100, hits*DEFECT_POINTS_PER_HIT));
+  }
+
+  playGrid();
 }
 
 function renderDefectResult(score){
@@ -2327,8 +2399,9 @@ function renderDefectResult(score){
     </div>
     <div class="rules-card">
       <div class="rules-title">📋 결과</div>
-      <div class="rules-text">4라운드 결함 탐지를 완료했어요.<br>🏅 내 최고 점수: ${isNewBest ? score : best}점${isNewBest ? ' — 방금 갱신했어요!' : ''}</div>
+      <div class="rules-text">40초 동안 결함 탐지를 완료했어요.<br>🏅 내 최고 점수: ${isNewBest ? score : best}점${isNewBest ? ' — 방금 갱신했어요!' : ''}</div>
     </div>
+    ${rankSubmitCardHTML()}
     <div class="spacer"></div>
     <div class="btn-row">
       <button class="btn ghost" id="defect-result-back">◀ 미니게임 목록</button>
@@ -2337,6 +2410,7 @@ function renderDefectResult(score){
   `;
   defectArea.appendChild(ov);
   if(isNewBest) playSuccessChime(0);
+  wireRankSubmit(ov, 'defect', score, '결함 탐지');
   ov.querySelector('#defect-result-back').addEventListener('click', ()=>{
     stopAmbience();
     showScreen('screen-minigames');
@@ -2348,6 +2422,8 @@ function renderDefectResult(score){
 }
 
 document.getElementById('btn-defect-back').addEventListener('click', ()=>{
+  defectCleanedUp = true;
+  resetDefectTimer();
   stopAmbience();
   showScreen('screen-minigames');
 });
@@ -2360,106 +2436,129 @@ document.getElementById('btn-defect-back').addEventListener('click', ()=>{
 
 /* Engine A: timing zone — stop a moving marker inside a shrinking target zone */
 function timingZoneGame(cfg){
-  return function(container, onFinish){
-    let round = 0, totalScore = 0, raf = null, cleanedUp = false;
-    function playRound(){
-      const r = cfg.rounds[round];
-      let hit = false, startTime = null;
-      container.innerHTML = `
-        <div class="exp-status">${round+1} / ${cfg.rounds.length} 라운드 · ${cfg.label}</div>
-        <div class="tz-track" id="tz-track">
-          <div class="tz-zone" style="left:${50-r.zoneWidth/2}%;width:${r.zoneWidth}%;"></div>
-          <div class="tz-marker" id="tz-marker"></div>
-        </div>
-        <div style="text-align:center;margin-top:20px;">
-          <button class="btn ready-btn" id="tz-stop" style="width:min(220px,72vw);">${cfg.actionLabel}</button>
-        </div>
-      `;
-      const marker = container.querySelector('#tz-marker');
-      const track = container.querySelector('#tz-track');
-      const stopBtn = container.querySelector('#tz-stop');
-      function tick(ts){
-        if(cleanedUp || hit) return;
-        if(!startTime) startTime = ts;
-        const phase = ((ts-startTime) % r.speed) / r.speed;
-        const pos = phase < 0.5 ? phase*2*100 : (1-phase)*2*100;
-        marker.style.left = pos + '%';
-        raf = requestAnimationFrame(tick);
-      }
+  return function(container, onFinish, ctx){
+    let hits=0, cleanedUp=false, raf=null, tickId=null, lastTap=0;
+    let remaining = cfg.timeLimit;
+    container.innerHTML = `
+      <div class="exp-status">${cfg.label} · 점수 <span id="tz-score">0</span></div>
+      <div class="tz-track" id="tz-track">
+        <div class="tz-zone" style="left:${50-cfg.zoneWidth/2}%;width:${cfg.zoneWidth}%;"></div>
+        <div class="tz-marker" id="tz-marker"></div>
+      </div>
+      <div style="text-align:center;margin-top:20px;">
+        <button class="btn ready-btn" id="tz-stop" style="width:min(220px,72vw);">${cfg.actionLabel}</button>
+      </div>
+    `;
+    const marker = container.querySelector('#tz-marker');
+    const track = container.querySelector('#tz-track');
+    const scoreEl = container.querySelector('#tz-score');
+    const btn = container.querySelector('#tz-stop');
+    ctx.setTimer(remaining, cfg.timeLimit);
+    tickId = setInterval(()=>{
+      if(cleanedUp) return;
+      remaining -= 0.1;
+      ctx.setTimer(Math.max(0, remaining), cfg.timeLimit);
+      if(remaining<=0) finish();
+    }, 100);
+    let startTime = null;
+    function tick(ts){
+      if(cleanedUp) return;
+      if(!startTime) startTime = ts;
+      const phase = ((ts-startTime) % cfg.speed) / cfg.speed;
+      marker.style.left = (phase<0.5 ? phase*2*100 : (1-phase)*2*100) + '%';
       raf = requestAnimationFrame(tick);
-      stopBtn.addEventListener('click', ()=>{
-        if(hit) return;
-        hit = true;
-        cancelAnimationFrame(raf);
-        const pos = parseFloat(marker.style.left) || 0;
-        const dist = Math.abs(pos-50);
-        const inZone = dist <= r.zoneWidth/2;
-        totalScore += inZone ? Math.max(40, 100-dist*3) : Math.max(0, 40-dist);
-        track.style.borderColor = inZone ? 'var(--good)' : 'var(--bad)';
-        setTimeout(()=>{
-          if(cleanedUp) return;
-          round++;
-          if(round>=cfg.rounds.length) onFinish(Math.round(totalScore/cfg.rounds.length));
-          else playRound();
-        }, 700);
-      });
     }
-    playRound();
-    return function cleanup(){ cleanedUp=true; if(raf) cancelAnimationFrame(raf); };
+    raf = requestAnimationFrame(tick);
+    btn.addEventListener('click', ()=>{
+      if(cleanedUp) return;
+      const now = performance.now();
+      if(now-lastTap < (cfg.tapCooldown||280)) return;
+      lastTap = now;
+      const pos = parseFloat(marker.style.left) || 0;
+      const inZone = Math.abs(pos-50) <= cfg.zoneWidth/2;
+      if(inZone){ hits++; scoreEl.textContent = hits; track.style.borderColor='var(--good)'; }
+      else track.style.borderColor='var(--bad)';
+      setTimeout(()=>{ if(!cleanedUp) track.style.borderColor='var(--line)'; }, 150);
+    });
+    function finish(){
+      if(cleanedUp) return;
+      cleanedUp = true;
+      clearInterval(tickId);
+      if(raf) cancelAnimationFrame(raf);
+      onFinish(Math.min(100, hits*cfg.pointsPerHit));
+    }
+    return function cleanup(){ cleanedUp=true; clearInterval(tickId); if(raf) cancelAnimationFrame(raf); };
   };
 }
 
-/* Engine B: quick tap combo — tap flashing targets before they vanish, chain a combo */
+/* Engine B: quick tap combo — tap flashing targets before they vanish, chain a combo, race the clock */
 function quickTapComboGame(cfg){
-  return function(container, onFinish){
-    let hits=0, spawned=0, combo=0, cleanedUp=false;
+  return function(container, onFinish, ctx){
+    let hits=0, combo=0, cleanedUp=false, timeUp=false, spawnTimer=null;
+    let remaining = cfg.timeLimit;
     container.innerHTML = `
-      <div class="exp-status">${cfg.label} · <span id="qtc-combo">콤보 0</span></div>
+      <div class="exp-status">${cfg.label} · 점수 <span id="qtc-score">0</span> · <span id="qtc-combo">콤보 0</span></div>
       <div class="qtc-area" id="qtc-area"></div>
     `;
     const area = container.querySelector('#qtc-area');
     const comboEl = container.querySelector('#qtc-combo');
-    function spawnTarget(){
+    const scoreEl = container.querySelector('#qtc-score');
+    ctx.setTimer(remaining, cfg.timeLimit);
+    const tickId = setInterval(()=>{
       if(cleanedUp) return;
-      if(spawned>=cfg.totalTargets){ onFinish(Math.round((hits/cfg.totalTargets)*100)); return; }
-      spawned++;
+      remaining -= 0.1;
+      ctx.setTimer(Math.max(0, remaining), cfg.timeLimit);
+      if(remaining<=0 && !timeUp){ timeUp = true; clearTimeout(spawnTimer); if(area.children.length===0) finish(); }
+    }, 100);
+    let spawnCount = 0;
+    function spawnTarget(){
+      if(cleanedUp || timeUp) return;
+      spawnCount++;
       const t = document.createElement('div');
       t.className = 'qtc-target';
       t.style.left = (12+Math.random()*76)+'%';
       t.style.top = (12+Math.random()*76)+'%';
       area.appendChild(t);
-      const life = Math.max(cfg.minLife, cfg.startLife - spawned*cfg.shrinkPerSpawn);
+      const life = Math.max(cfg.minLife, cfg.startLife - spawnCount*cfg.shrinkPerSpawn);
       let tapped = false;
       const timer = setTimeout(()=>{
         if(tapped || cleanedUp) return;
         t.remove(); combo = 0; comboEl.textContent = '콤보 0';
-        spawnTarget();
+        if(timeUp){ if(area.children.length===0) finish(); } else spawnTimer = setTimeout(spawnTarget, cfg.spawnGap||120);
       }, life);
       t.addEventListener('click', ()=>{
         if(tapped || cleanedUp) return;
         tapped = true;
         clearTimeout(timer);
         hits++; combo++;
+        scoreEl.textContent = Math.min(100, hits*cfg.pointsPerHit);
         comboEl.textContent = '콤보 '+combo;
         t.classList.add('qtc-hit');
         setTimeout(()=>{ if(!cleanedUp) t.remove(); }, 180);
-        spawnTarget();
+        if(timeUp){ if(area.children.length<=1) finish(); } else spawnTimer = setTimeout(spawnTarget, cfg.spawnGap||120);
       });
     }
     spawnTarget();
-    return function cleanup(){ cleanedUp = true; };
+    function finish(){
+      if(cleanedUp) return;
+      cleanedUp = true;
+      clearInterval(tickId);
+      clearTimeout(spawnTimer);
+      onFinish(Math.min(100, hits*cfg.pointsPerHit));
+    }
+    return function cleanup(){ cleanedUp = true; clearInterval(tickId); clearTimeout(spawnTimer); };
   };
 }
 
-/* Engine C: drag to target — drag a piece onto a randomly placed target before advancing */
+/* Engine C: drag to target — drag a piece onto a target, it respawns elsewhere on release, race the clock */
 function dragTargetGame(cfg){
-  return function(container, onFinish){
-    let round=0, totalScore=0, cleanedUp=false;
-    function playRound(){
-      const r = cfg.rounds[round];
+  return function(container, onFinish, ctx){
+    let hits=0, cleanedUp=false;
+    let remaining = cfg.timeLimit;
+    function spawnRound(){
       const tx = 20+Math.random()*60, ty = 22+Math.random()*56;
       container.innerHTML = `
-        <div class="exp-status">${round+1} / ${cfg.rounds.length} 라운드 · ${cfg.label}</div>
+        <div class="exp-status">${cfg.label} · 점수 <span id="dtg-score">${Math.min(100,hits*cfg.pointsPerHit)}</span></div>
         <div class="dtg-area" id="dtg-area">
           <div class="dtg-target" style="left:${tx}%;top:${ty}%;"></div>
           <div class="dtg-piece" id="dtg-piece" style="left:50%;top:88%;"></div>
@@ -2473,21 +2572,16 @@ function dragTargetGame(cfg){
         return { x:(clientX-rect.left)/rect.width*100, y:(clientY-rect.top)/rect.height*100 };
       }
       function settle(clientX, clientY){
-        if(!dragging || done) return;
+        if(!dragging || done || cleanedUp) return;
         done = true; dragging = false;
         const p = toPct(clientX, clientY);
         const dist = Math.hypot(p.x-tx, p.y-ty);
-        const inZone = dist <= r.tolerance;
-        totalScore += inZone ? Math.max(50, 100-dist*4) : Math.max(0, 40-dist);
+        const inZone = dist <= cfg.tolerance;
+        if(inZone) hits++;
         piece.style.left = Math.max(0,Math.min(100,p.x))+'%';
         piece.style.top = Math.max(0,Math.min(100,p.y))+'%';
         piece.style.borderColor = inZone ? 'var(--good)' : 'var(--bad)';
-        setTimeout(()=>{
-          if(cleanedUp) return;
-          round++;
-          if(round>=cfg.rounds.length) onFinish(Math.round(totalScore/cfg.rounds.length));
-          else playRound();
-        }, 600);
+        setTimeout(()=>{ if(!cleanedUp) spawnRound(); }, 350);
       }
       piece.addEventListener('pointerdown', (e)=>{ dragging=true; try{ piece.setPointerCapture(e.pointerId); }catch(err){} });
       piece.addEventListener('pointermove', (e)=>{
@@ -2498,81 +2592,86 @@ function dragTargetGame(cfg){
       });
       piece.addEventListener('pointerup', (e)=> settle(e.clientX, e.clientY));
     }
-    playRound();
-    return function cleanup(){ cleanedUp=true; };
+    ctx.setTimer(remaining, cfg.timeLimit);
+    const tickId = setInterval(()=>{
+      if(cleanedUp) return;
+      remaining -= 0.1;
+      ctx.setTimer(Math.max(0, remaining), cfg.timeLimit);
+      if(remaining<=0) finish();
+    }, 100);
+    spawnRound();
+    function finish(){
+      if(cleanedUp) return;
+      cleanedUp = true;
+      clearInterval(tickId);
+      onFinish(Math.min(100, hits*cfg.pointsPerHit));
+    }
+    return function cleanup(){ cleanedUp=true; clearInterval(tickId); };
   };
 }
 
 /* Engine D: hold & balance — hold a button to raise a gauge, release to let it fall,
-   keep it inside the target band for a cumulative goal time before the round expires */
+   rack up cumulative time spent inside the target band before the clock runs out */
 function holdBalanceGame(cfg){
-  return function(container, onFinish){
-    let round=0, totalScore=0, cleanedUp=false, tickId=null;
-    function playRound(){
-      const r = cfg.rounds[round];
-      let level = 15, held = 0, roundElapsed = 0, pressing = false, done = false;
-      container.innerHTML = `
-        <div class="exp-status">${round+1} / ${cfg.rounds.length} 라운드 · ${cfg.label}</div>
-        <div class="hb-wrap">
-          <div class="hb-track" id="hb-track">
-            <div class="hb-zone" style="bottom:${r.band[0]}%;height:${r.band[1]-r.band[0]}%;"></div>
-            <div class="hb-fill" id="hb-fill"></div>
-          </div>
-          <div class="hb-progress" id="hb-progress">유지 ${held.toFixed(1)} / ${r.holdGoal}s</div>
-          <button class="btn ready-btn" id="hb-press" style="width:min(220px,72vw);">${cfg.actionLabel}</button>
+  return function(container, onFinish, ctx){
+    let level = 15, held = 0, pressing = false, cleanedUp = false;
+    let remaining = cfg.timeLimit;
+    container.innerHTML = `
+      <div class="exp-status">${cfg.label}</div>
+      <div class="hb-wrap">
+        <div class="hb-track" id="hb-track">
+          <div class="hb-zone" style="bottom:${cfg.band[0]}%;height:${cfg.band[1]-cfg.band[0]}%;"></div>
+          <div class="hb-fill" id="hb-fill"></div>
         </div>
-      `;
-      const fill = container.querySelector('#hb-fill');
-      const track = container.querySelector('#hb-track');
-      const progressEl = container.querySelector('#hb-progress');
-      const pressBtn = container.querySelector('#hb-press');
-      const tickMs = 60;
-      tickId = setInterval(()=>{
-        if(done) return;
-        roundElapsed += tickMs/1000;
-        level += (pressing ? r.rise : -r.fall) * (tickMs/1000);
-        level = Math.max(0, Math.min(100, level));
-        fill.style.height = level+'%';
-        const inBand = level>=r.band[0] && level<=r.band[1];
-        track.style.borderColor = inBand ? 'var(--good)' : 'var(--line)';
-        if(inBand) held += tickMs/1000;
-        progressEl.textContent = `유지 ${held.toFixed(1)} / ${r.holdGoal}s`;
-        if(held >= r.holdGoal) finish(true);
-        else if(roundElapsed >= r.roundTime) finish(false);
-      }, tickMs);
-      pressBtn.addEventListener('pointerdown', ()=>{ pressing=true; });
-      pressBtn.addEventListener('pointerup', ()=>{ pressing=false; });
-      pressBtn.addEventListener('pointerleave', ()=>{ pressing=false; });
-      function finish(success){
-        if(done) return;
-        done = true;
-        clearInterval(tickId);
-        totalScore += success ? 100 : Math.round((held/r.holdGoal)*100);
-        setTimeout(()=>{
-          if(cleanedUp) return;
-          round++;
-          if(round>=cfg.rounds.length) onFinish(Math.round(totalScore/cfg.rounds.length));
-          else playRound();
-        }, 700);
-      }
+        <div class="hb-progress" id="hb-progress">유지 시간: 0.0s</div>
+        <button class="btn ready-btn" id="hb-press" style="width:min(220px,72vw);">${cfg.actionLabel}</button>
+      </div>
+    `;
+    const fill = container.querySelector('#hb-fill');
+    const track = container.querySelector('#hb-track');
+    const progressEl = container.querySelector('#hb-progress');
+    const pressBtn = container.querySelector('#hb-press');
+    const tickMs = 60;
+    ctx.setTimer(remaining, cfg.timeLimit);
+    const tickId = setInterval(()=>{
+      if(cleanedUp) return;
+      remaining -= tickMs/1000;
+      level += (pressing ? cfg.rise : -cfg.fall) * (tickMs/1000);
+      level = Math.max(0, Math.min(100, level));
+      fill.style.height = level+'%';
+      const inBand = level>=cfg.band[0] && level<=cfg.band[1];
+      track.style.borderColor = inBand ? 'var(--good)' : 'var(--line)';
+      if(inBand) held += tickMs/1000;
+      progressEl.textContent = `유지 시간: ${held.toFixed(1)}s`;
+      ctx.setTimer(Math.max(0, remaining), cfg.timeLimit);
+      if(remaining<=0) finish();
+    }, tickMs);
+    pressBtn.addEventListener('pointerdown', ()=>{ pressing=true; });
+    pressBtn.addEventListener('pointerup', ()=>{ pressing=false; });
+    pressBtn.addEventListener('pointerleave', ()=>{ pressing=false; });
+    function finish(){
+      if(cleanedUp) return;
+      cleanedUp = true;
+      clearInterval(tickId);
+      onFinish(Math.round(held/cfg.timeLimit*100));
     }
-    playRound();
-    return function cleanup(){ cleanedUp=true; if(tickId) clearInterval(tickId); };
+    return function cleanup(){ cleanedUp=true; clearInterval(tickId); };
   };
 }
 
-/* Engine E: trace & avoid — drag a dot from top to bottom around static obstacles */
+/* Engine E: trace & avoid — drag a dot from top to bottom around static obstacles,
+   each clean run scores a point and immediately respawns a fresh layout */
 function traceAvoidGame(cfg){
-  return function(container, onFinish){
-    let round=0, totalScore=0, cleanedUp=false;
-    function playRound(){
-      const r = cfg.rounds[round];
+  return function(container, onFinish, ctx){
+    let hits=0, cleanedUp=false;
+    let remaining = cfg.timeLimit;
+    function spawnRound(){
       const obstacles = [];
-      for(let i=0;i<r.obstacles;i++){
-        obstacles.push({ x: 20+Math.random()*60, y: 15+(i+1)*(70/(r.obstacles+1)) });
+      for(let i=0;i<cfg.obstacles;i++){
+        obstacles.push({ x: 20+Math.random()*60, y: 15+(i+1)*(70/(cfg.obstacles+1)) });
       }
       container.innerHTML = `
-        <div class="exp-status">${round+1} / ${cfg.rounds.length} 라운드 · ${cfg.label}</div>
+        <div class="exp-status">${cfg.label} · 점수 <span id="tr-score">${Math.min(100,hits*cfg.pointsPerHit)}</span></div>
         <div class="tr-area" id="tr-area">
           <div class="tr-start" style="top:6%;"></div>
           <div class="tr-end" style="top:92%;"></div>
@@ -2584,16 +2683,11 @@ function traceAvoidGame(cfg){
       const dot = container.querySelector('#tr-dot');
       let dragging=false, failed=false, done=false;
       function toPct(cx,cy){ const rc=area.getBoundingClientRect(); return {x:(cx-rc.left)/rc.width*100, y:(cy-rc.top)/rc.height*100}; }
-      function checkHit(px,py){ return obstacles.some(o=> Math.hypot(px-o.x, py-o.y) < r.tolerance); }
+      function checkHit(px,py){ return obstacles.some(o=> Math.hypot(px-o.x, py-o.y) < cfg.tolerance); }
       function finish(){
-        if(done) return; done=true; dragging=false;
-        totalScore += failed ? 30 : 100;
-        setTimeout(()=>{
-          if(cleanedUp) return;
-          round++;
-          if(round>=cfg.rounds.length) onFinish(Math.round(totalScore/cfg.rounds.length));
-          else playRound();
-        }, 600);
+        if(done || cleanedUp) return; done=true; dragging=false;
+        if(!failed) hits++;
+        setTimeout(()=>{ if(!cleanedUp) spawnRound(); }, 350);
       }
       dot.addEventListener('pointerdown', (e)=>{ dragging=true; try{ dot.setPointerCapture(e.pointerId); }catch(err){} });
       dot.addEventListener('pointermove', (e)=>{
@@ -2602,34 +2696,49 @@ function traceAvoidGame(cfg){
         const px = Math.max(0,Math.min(100,p.x)), py = Math.max(0,Math.min(100,p.y));
         dot.style.left = px+'%';
         dot.style.top = py+'%';
-        if(!failed && checkHit(px,py)){ failed = true; dot.classList.add('tr-fail'); }
+        if(!failed && checkHit(px,py)){ failed = true; dot.classList.add('tr-fail'); finish(); }
         if(py >= 88) finish();
       });
       dot.addEventListener('pointerup', ()=>{ dragging=false; });
     }
-    playRound();
-    return function cleanup(){ cleanedUp=true; };
+    ctx.setTimer(remaining, cfg.timeLimit);
+    const tickId = setInterval(()=>{
+      if(cleanedUp) return;
+      remaining -= 0.1;
+      ctx.setTimer(Math.max(0, remaining), cfg.timeLimit);
+      if(remaining<=0) finishGame();
+    }, 100);
+    spawnRound();
+    function finishGame(){
+      if(cleanedUp) return;
+      cleanedUp = true;
+      clearInterval(tickId);
+      onFinish(Math.min(100, hits*cfg.pointsPerHit));
+    }
+    return function cleanup(){ cleanedUp=true; clearInterval(tickId); };
   };
 }
 
-/* Engine F: conveyor — items scroll across a belt; tap only the defective ones in time */
+/* Engine F: conveyor — items scroll across a belt for the whole time limit; tap only the defective ones */
 function conveyorGame(cfg){
-  return function(container, onFinish){
-    let spawned=0, correct=0, wrong=0, totalBad=0, cleanedUp=false, spawnTimer=null;
+  return function(container, onFinish, ctx){
+    let correct=0, wrong=0, totalBad=0, cleanedUp=false, timeUp=false, spawnTimer=null;
+    let remaining = cfg.timeLimit;
     container.innerHTML = `
-      <div class="exp-status">${cfg.label} · 남은 개수: <span id="cv-remain">${cfg.totalItems}</span></div>
+      <div class="exp-status">${cfg.label} · 점수 <span id="cv-score">0</span></div>
       <div class="cv-belt" id="cv-belt"></div>
     `;
     const belt = container.querySelector('#cv-belt');
-    const remainEl = container.querySelector('#cv-remain');
-    function spawnItem(){
+    const scoreEl = container.querySelector('#cv-score');
+    ctx.setTimer(remaining, cfg.timeLimit);
+    const tickId = setInterval(()=>{
       if(cleanedUp) return;
-      if(spawned>=cfg.totalItems){
-        setTimeout(()=>{ if(!cleanedUp) finish(); }, cfg.speedMs+300);
-        return;
-      }
-      spawned++;
-      remainEl.textContent = cfg.totalItems - spawned;
+      remaining -= 0.1;
+      ctx.setTimer(Math.max(0, remaining), cfg.timeLimit);
+      if(remaining<=0 && !timeUp){ timeUp = true; clearTimeout(spawnTimer); if(belt.children.length===0) finish(); }
+    }, 100);
+    function spawnItem(){
+      if(cleanedUp || timeUp) return;
       const isBad = Math.random() < cfg.badRatio;
       if(isBad) totalBad++;
       const el = document.createElement('div');
@@ -2643,65 +2752,66 @@ function conveyorGame(cfg){
         el.style.left = '-12%';
       });
       let tapped = false;
+      function settle(){
+        if(!cleanedUp) el.remove();
+        if(timeUp && belt.children.length===0) finish();
+      }
       el.addEventListener('click', ()=>{
         if(tapped || cleanedUp) return;
         tapped = true;
         if(isBad){ correct++; el.classList.add('cv-hit-good'); }
         else { wrong++; el.classList.add('cv-hit-bad'); }
-        setTimeout(()=>{ if(!cleanedUp) el.remove(); }, 220);
+        scoreEl.textContent = Math.max(0, Math.min(100, Math.round((correct/Math.max(1,totalBad))*100 - wrong*8)));
+        setTimeout(settle, 220);
       });
-      setTimeout(()=>{
-        if(!tapped && !cleanedUp) el.remove();
-      }, cfg.speedMs);
-      spawnTimer = setTimeout(spawnItem, cfg.spawnInterval);
+      setTimeout(()=>{ if(!tapped && !cleanedUp) settle(); }, cfg.speedMs);
+      if(!timeUp) spawnTimer = setTimeout(spawnItem, cfg.spawnInterval);
     }
+    spawnItem();
     function finish(){
       if(cleanedUp) return;
+      cleanedUp = true;
+      clearInterval(tickId);
+      clearTimeout(spawnTimer);
       const score = totalBad>0 ? Math.round((correct/totalBad)*100 - wrong*8) : 100;
       onFinish(Math.max(0, Math.min(100, score)));
     }
-    spawnItem();
-    return function cleanup(){ cleanedUp = true; clearTimeout(spawnTimer); belt.innerHTML=''; };
+    return function cleanup(){ cleanedUp = true; timeUp = true; clearInterval(tickId); clearTimeout(spawnTimer); belt.innerHTML=''; };
   };
 }
 
 const EXTRA_GAMES = {
   wafer_timing:{
     icon:'🔪', name:'잉곳 정속 슬라이스', color:'#93c5fd',
-    intro:'다이아몬드 톱이 초록 구간을 지날 때 정확히 [싹둑!]을 눌러야 균일한 두께로 잘려요. 라운드가 지날수록 구간이 좁아지고 빨라져요!',
-    play: timingZoneGame({ label:'잉곳 정속 슬라이스', actionLabel:'✂️ 싹둑!',
-      rounds:[{zoneWidth:36,speed:1400},{zoneWidth:26,speed:1150},{zoneWidth:18,speed:950},{zoneWidth:12,speed:800}] })
+    intro:'25초 동안 다이아몬드 톱이 초록 구간을 지날 때마다 [싹둑!]을 눌러 최대한 많이 맞혀 점수를 쌓으세요!',
+    play: timingZoneGame({ label:'잉곳 정속 슬라이스', actionLabel:'✂️ 싹둑!', timeLimit:25,
+      zoneWidth:22, speed:1000, pointsPerHit:14, tapCooldown:260 })
   },
   oxidation_hold:{
     icon:'🌡️', name:'산화막 압력 유지', color:'#60a5fa',
-    intro:'버튼을 누르고 있으면 압력이 오르고, 손을 떼면 내려가요. 목표 구간 안에 압력을 붙잡아 두어 유지 시간을 채우세요. 라운드가 지날수록 구간이 좁아지고 시간이 빠듯해져요!',
-    play: holdBalanceGame({ label:'산화막 압력 유지', actionLabel:'🧪 눌러서 가스 주입',
-      rounds:[
-        {band:[38,62], holdGoal:2.5, roundTime:9, rise:55, fall:35},
-        {band:[42,60], holdGoal:3,   roundTime:9, rise:60, fall:40},
-        {band:[45,58], holdGoal:3.2, roundTime:8, rise:65, fall:45},
-        {band:[46,56], holdGoal:3.5, roundTime:8, rise:70, fall:50}
-      ] })
+    intro:'버튼을 누르고 있으면 압력이 오르고, 손을 떼면 내려가요. 25초 동안 압력을 목표 구간 안에 최대한 오래 붙잡아 두세요. 누적 유지 시간이 곧 점수예요!',
+    play: holdBalanceGame({ label:'산화막 압력 유지', actionLabel:'🧪 눌러서 가스 주입', timeLimit:25,
+      band:[42,60], rise:55, fall:38 })
   },
   photo_drag:{
     icon:'🎯', name:'마스크 스피드 정렬', color:'#38bdf8',
-    intro:'파란 마스크 조각을 점선 목표 위치로 재빨리 드래그해서 정렬하세요. 라운드가 지날수록 정렬 허용 오차가 줄어들어요!',
-    play: dragTargetGame({ label:'마스크 스피드 정렬', rounds:[{tolerance:16},{tolerance:12},{tolerance:9},{tolerance:6}] })
+    intro:'25초 동안 파란 마스크 조각을 점선 목표 위치로 최대한 많이 드래그해서 정렬하세요. 맞힐 때마다 새 목표가 나타나요!',
+    play: dragTargetGame({ label:'마스크 스피드 정렬', timeLimit:25, tolerance:12, pointsPerHit:11 })
   },
   iondep_combo:{
     icon:'⚡', name:'이온 콤보 저격', color:'#7dd3fc',
-    intro:'반짝이는 슬롯이 무작위 위치에 나타났다 사라져요. 사라지기 전에 재빨리 탭해서 콤보를 이어가며 균일한 도핑을 완성하세요!',
-    play: quickTapComboGame({ label:'이온 콤보 저격', totalTargets:15, startLife:1100, minLife:420, shrinkPerSpawn:45 })
+    intro:'25초 동안 반짝이는 슬롯을 사라지기 전에 최대한 많이 탭해서 콤보를 이어가며 점수를 쌓으세요!',
+    play: quickTapComboGame({ label:'이온 콤보 저격', timeLimit:25, startLife:1000, minLife:380, shrinkPerSpawn:32, pointsPerHit:9, spawnGap:100 })
   },
   etch_trace:{
     icon:'🧭', name:'식각 라인 트레이싱', color:'#2f6fed',
-    intro:'회로선(빨간 구역)을 건드리지 않도록 파란 점을 손가락으로 밀어 맨 아래 목표까지 옮기세요. 라운드가 지날수록 장애물이 늘어나요!',
-    play: traceAvoidGame({ label:'식각 라인 트레이싱', rounds:[{obstacles:2,tolerance:11},{obstacles:3,tolerance:11},{obstacles:4,tolerance:10},{obstacles:5,tolerance:10}] })
+    intro:'25초 동안 회로선(빨간 구역)을 건드리지 않도록 파란 점을 밀어 맨 아래까지 옮기세요. 한 번 성공할 때마다 새 경로가 나타나요!',
+    play: traceAvoidGame({ label:'식각 라인 트레이싱', timeLimit:25, obstacles:3, tolerance:11, pointsPerHit:14 })
   },
   eds_conveyor:{
     icon:'🔬', name:'불량 칩 컨베이어 검사', color:'#0ea5e9',
-    intro:'컨베이어 벨트를 타고 오른쪽에서 왼쪽으로 칩이 흘러가요. 불량(⚠️) 칩만 재빨리 탭해서 쳐내고, 정상(✔️) 칩은 그냥 흘려보내세요!',
-    play: conveyorGame({ label:'불량 칩 컨베이어 검사', totalItems:22, badRatio:0.45, speedMs:2600, spawnInterval:520 })
+    intro:'25초 동안 컨베이어 벨트를 타고 흘러가는 칩 중 불량(⚠️)만 재빨리 탭해서 쳐내고, 정상(✔️)은 그냥 흘려보내세요!',
+    play: conveyorGame({ label:'불량 칩 컨베이어 검사', timeLimit:25, badRatio:0.45, speedMs:2400, spawnInterval:480 })
   }
 };
 
@@ -2722,10 +2832,42 @@ Object.keys(EXTRA_GAMES).forEach(key=>{
 
 const extraArea = document.getElementById('extra-stage-area');
 const extraTitleEl = document.getElementById('extra-title');
+const extraTimerEl = document.getElementById('extra-timer');
+const extraTimerText = document.getElementById('extra-timer-text');
+const extraTimerFill = document.getElementById('extra-timer-bar-fill');
+const extraTimerTrack = document.getElementById('extra-timer-bar-track');
+let extraTimerDanger = false;
 let currentExtraKey = null;
 
 function getExtraBest(key){ try{ return parseInt(localStorage.getItem('sili_fab_extra_'+key+'_best')||'0',10)||0; }catch(e){ return 0; } }
 function setExtraBest(key, v){ try{ localStorage.setItem('sili_fab_extra_'+key+'_best', String(v)); }catch(e){} }
+
+function resetExtraTimer(){
+  extraTimerDanger = false;
+  extraTimerEl.classList.remove('timer-danger');
+  extraTimerTrack.classList.remove('timer-danger');
+  extraArea.classList.remove('danger-flash');
+  extraTimerText.textContent = '--';
+  extraTimerFill.style.width = '100%';
+}
+function setExtraTimer(remaining, total){
+  const clamped = Math.max(0, remaining);
+  const fraction = total>0 ? clamped/total : 1;
+  extraTimerText.textContent = Math.ceil(clamped)+'s';
+  extraTimerFill.style.width = Math.max(0, Math.min(100, fraction*100))+'%';
+  const inDanger = fraction <= DANGER_FRACTION;
+  if(inDanger && !extraTimerDanger){
+    extraTimerDanger = true;
+    extraTimerEl.classList.add('timer-danger');
+    extraTimerTrack.classList.add('timer-danger');
+    extraArea.classList.add('danger-flash');
+  } else if(!inDanger && extraTimerDanger){
+    extraTimerDanger = false;
+    extraTimerEl.classList.remove('timer-danger');
+    extraTimerTrack.classList.remove('timer-danger');
+    extraArea.classList.remove('danger-flash');
+  }
+}
 
 function openExtraGame(key){
   currentExtraKey = key;
@@ -2740,6 +2882,7 @@ function openExtraGame(key){
 function renderExtraIntro(key){
   const g = EXTRA_GAMES[key];
   extraArea.innerHTML = '';
+  resetExtraTimer();
   const best = getExtraBest(key);
   const ov = document.createElement('div');
   ov.className = 'stage-overlay ready-overlay';
@@ -2772,8 +2915,9 @@ function renderExtraIntro(key){
 let extraCleanup = null;
 function startExtraGame(key){
   extraArea.innerHTML = '';
+  resetExtraTimer();
   if(extraCleanup){ try{ extraCleanup(); }catch(e){} extraCleanup = null; }
-  extraCleanup = EXTRA_GAMES[key].play(extraArea, (score)=> renderExtraResult(key, Math.max(0,Math.min(100,Math.round(score)))));
+  extraCleanup = EXTRA_GAMES[key].play(extraArea, (score)=> renderExtraResult(key, Math.max(0,Math.min(100,Math.round(score)))), { setTimer: setExtraTimer });
 }
 
 function renderExtraResult(key, score){
@@ -2796,6 +2940,7 @@ function renderExtraResult(key, score){
       <div class="rules-title">📋 결과</div>
       <div class="rules-text">🏅 내 최고 점수: ${isNewBest ? score : best}점${isNewBest ? ' — 방금 갱신했어요!' : ''}</div>
     </div>
+    ${rankSubmitCardHTML()}
     <div class="spacer"></div>
     <div class="btn-row">
       <button class="btn ghost" id="extra-result-back">◀ 미니게임 목록</button>
@@ -2804,6 +2949,7 @@ function renderExtraResult(key, score){
   `;
   extraArea.appendChild(ov);
   if(isNewBest) playSuccessChime(0);
+  wireRankSubmit(ov, key, score, g.name);
   ov.querySelector('#extra-result-back').addEventListener('click', ()=>{
     stopAmbience();
     showScreen('screen-minigames');
@@ -2816,6 +2962,7 @@ function renderExtraResult(key, score){
 
 document.getElementById('btn-extra-back').addEventListener('click', ()=>{
   if(extraCleanup){ try{ extraCleanup(); }catch(e){} extraCleanup = null; }
+  resetExtraTimer();
   stopAmbience();
   showScreen('screen-minigames');
 });

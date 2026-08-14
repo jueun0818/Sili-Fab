@@ -5,11 +5,29 @@
 // (Storage tab). Different integrations name the pair differently, so we
 // accept either. Until one is linked this endpoint responds with 503 so the
 // client can show a friendly "not ready yet" message instead of crashing.
+//
+// Supports two kinds of boards, selected by a `board` query/body param:
+//  - "main" (default, omitted): the original 8-stage final-yield board.
+//    Entries are { name, yieldPct, grade, ts }, sorted by yieldPct desc.
+//    Stored under the original KEY for backward compatibility.
+//  - one of MINIGAME_BOARDS: a standalone minigame's score board.
+//    Entries are { name, score, ts }, sorted by score desc.
+//    Stored under a derived per-board key.
 
 const KEY = 'sili_fab_leaderboard_v1';
 const MAX_ENTRIES = 200;
 const TOP_N = 50;
 const GRADES = new Set(['A', 'B', 'C', 'D', 'F']);
+const MINIGAME_BOARDS = new Set([
+  'wafer_timing', 'oxidation_hold', 'photo_drag',
+  'iondep_combo', 'etch_trace', 'eds_conveyor',
+  'defect', 'memory',
+]);
+
+function keyFor(board) {
+  if (!board || board === 'main') return KEY;
+  return `${KEY}_mg_${board}`;
+}
 
 function getKvCredentials() {
   const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
@@ -33,8 +51,8 @@ async function kv(command) {
   return data.result;
 }
 
-async function loadEntries() {
-  const raw = await kv(['GET', KEY]);
+async function loadEntries(key) {
+  const raw = await kv(['GET', key]);
   if (raw === null || raw === undefined) return [];
   try {
     const parsed = JSON.parse(raw);
@@ -60,10 +78,18 @@ module.exports = async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const entries = await loadEntries();
+      const board = typeof req.query.board === 'string' ? req.query.board : '';
+      const isMain = !board || board === 'main';
+      if (!isMain && !MINIGAME_BOARDS.has(board)) {
+        res.status(400).json({ error: 'unknown_board' });
+        return;
+      }
+      const entries = await loadEntries(keyFor(board));
       const top = entries
         .slice()
-        .sort((a, b) => b.yieldPct - a.yieldPct || a.ts - b.ts)
+        .sort(isMain
+          ? (a, b) => b.yieldPct - a.yieldPct || a.ts - b.ts
+          : (a, b) => b.score - a.score || a.ts - b.ts)
         .slice(0, TOP_N);
       res.status(200).json({ entries: top });
       return;
@@ -71,22 +97,44 @@ module.exports = async function handler(req, res) {
 
     if (req.method === 'POST') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+      const board = typeof body.board === 'string' ? body.board : '';
+      const isMain = !board || board === 'main';
       const name = sanitizeName(body.name);
-      const yieldPct = Number(body.yieldPct);
-      const grade = typeof body.grade === 'string' ? body.grade.toUpperCase() : '';
 
-      if (!name || !Number.isFinite(yieldPct) || yieldPct < 0 || yieldPct > 100 || !GRADES.has(grade)) {
-        res.status(400).json({ error: 'invalid_submission' });
+      if (isMain) {
+        const yieldPct = Number(body.yieldPct);
+        const grade = typeof body.grade === 'string' ? body.grade.toUpperCase() : '';
+        if (!name || !Number.isFinite(yieldPct) || yieldPct < 0 || yieldPct > 100 || !GRADES.has(grade)) {
+          res.status(400).json({ error: 'invalid_submission' });
+          return;
+        }
+        const entries = await loadEntries(KEY);
+        const entry = { name, yieldPct: Math.round(yieldPct), grade, ts: Date.now() };
+        entries.push(entry);
+        entries.sort((a, b) => b.yieldPct - a.yieldPct || a.ts - b.ts);
+        const trimmed = entries.slice(0, MAX_ENTRIES);
+        await kv(['SET', KEY, JSON.stringify(trimmed)]);
+        const rank = trimmed.findIndex((e) => e.ts === entry.ts && e.name === entry.name) + 1;
+        res.status(200).json({ ok: true, rank: rank || null, total: trimmed.length });
         return;
       }
 
-      const entries = await loadEntries();
-      const entry = { name, yieldPct: Math.round(yieldPct), grade, ts: Date.now() };
+      if (!MINIGAME_BOARDS.has(board)) {
+        res.status(400).json({ error: 'unknown_board' });
+        return;
+      }
+      const score = Number(body.score);
+      if (!name || !Number.isFinite(score) || score < 0 || score > 100) {
+        res.status(400).json({ error: 'invalid_submission' });
+        return;
+      }
+      const key = keyFor(board);
+      const entries = await loadEntries(key);
+      const entry = { name, score: Math.round(score), ts: Date.now() };
       entries.push(entry);
-      entries.sort((a, b) => b.yieldPct - a.yieldPct || a.ts - b.ts);
+      entries.sort((a, b) => b.score - a.score || a.ts - b.ts);
       const trimmed = entries.slice(0, MAX_ENTRIES);
-      await kv(['SET', KEY, JSON.stringify(trimmed)]);
-
+      await kv(['SET', key, JSON.stringify(trimmed)]);
       const rank = trimmed.findIndex((e) => e.ts === entry.ts && e.name === entry.name) + 1;
       res.status(200).json({ ok: true, rank: rank || null, total: trimmed.length });
       return;
